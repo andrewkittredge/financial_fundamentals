@@ -1,0 +1,10 @@
+*.log
+*.pot
+*.pyc
+local_settings.py
+.project
+.pydevproject
+.my*
+*.swp
+*.sqlite
+.settings
