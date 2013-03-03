@@ -13,7 +13,7 @@ gaap_namespaces = ('http://fasb.org/us-gaap/2011-01-31',
     
 class EPS(object):
     @staticmethod
-    def value(filing):
+    def value_from_filing(filing):
         for gaap_namespace in gaap_namespaces:
             eps = filing.findtext('{{{}}}EarningsPerShareDiluted'.format(gaap_namespace))
             if eps:
@@ -21,6 +21,7 @@ class EPS(object):
     
 class QuarterlyEPS(EPS):
     filing_type = '10-Q'
+    metric_name = 'quarterly_eps'
     
 class AnnualEPS(EPS):
     filing_type = '10-K'

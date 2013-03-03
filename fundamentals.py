@@ -33,11 +33,12 @@ def price_to_earnings(ticker, date_, price):
     return price /(  QuarterlyEPS.value(filing) * 4)
 
 class SQLLiteMultiplesCache(object):
-    create_stm = '''CREATE TABLE {:s} (date text, ticker text, metric text, value real)'''
+    
     def __init__(self, db_path='multiples.db', table='multiples'):
         self.table = table
         self.connection = sqlite3.connect(db_path)
         
+    create_stm = '''CREATE TABLE {:s} (date text, ticker text, metric text, value real)'''   
     def create_database(self):
         connection = self.connection
         with connection:
@@ -119,10 +120,6 @@ class TestsSQLiteMultiplesCache(unittest.TestCase):
         other_val_from_cache = self.cache.get(other_ticker, date_, other_metric)
         self.assertEqual(other_val_from_cache, msft_price)
         
-    def test_db_persistence(self):
-        pass
-        
-        
 
 @unittest.SkipTest
 class TestsFundamentals(unittest.TestCase):
@@ -136,3 +133,8 @@ class TestsFundamentals(unittest.TestCase):
         metric_date = date(2011, 12, 28)
         computed_pe = price_to_earnings('aapl', metric_date, dec_28_2011_appl_price)
         self.assertAlmostEqual(computed_pe, dec_28_2011_appl_pe, delta=.1)
+        
+if __name__ == '__main__':
+    cache = SQLLiteMultiplesCache()
+    cache.create_database()
+    

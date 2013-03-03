@@ -6,7 +6,8 @@ Created on Feb 16, 2013
 '''
 from zipline.algorithm import TradingAlgorithm
 from datetime import date, datetime, time
-from fundamentals import price_to_earnings
+from fundamentals import price_to_earnings, SQLLiteMultiplesCache
+from accounting_metrics import QuarterlyEPS
 
 DOW_TICKERS = ['MMM', 'AA', 'AXP', 'T', 'BAC', 'BA', 'CAT', 'CVX', 
                'CSCO', 'DD', 'XOM', 'GE', 'HPQ', 'HD', 'INTC', 'IBM', 
@@ -16,6 +17,10 @@ DOW_TICKERS = ['MMM', 'AA', 'AXP', 'T', 'BAC', 'BA', 'CAT', 'CVX',
     
 
 class BuyValueStocks(TradingAlgorithm):
+    def __init__(self, *args, **kwargs):
+        TradingAlgorithm.__init__(self, *args, **kwargs)
+        self.multiples_cache = SQLLiteMultiplesCache()
+        
     num_days_processed = 0
     def handle_data(self, data):
         print self.num_days_processed
@@ -23,8 +28,10 @@ class BuyValueStocks(TradingAlgorithm):
         for ticker in DOW_TICKERS:
             ticker_data = data[ticker]
             trading_date = ticker_data.datetime.to_datetime().date()
-            pe = price_to_earnings(ticker=ticker, date_=trading_date, 
-                                   price=ticker_data.price)
+            earnings = self.multiples_cache.get(ticker=ticker, 
+                                                date_=trading_date, 
+                                                metric=QuarterlyEPS)
+            pe = earnings / ticker_data.price
             if pe < 10:
                 self.order(ticker, 1)
                 self.buy = True
