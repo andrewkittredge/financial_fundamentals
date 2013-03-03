@@ -56,9 +56,10 @@ class SQLLiteMultiplesCache(object):
     
     get_multiple_stm = '''SELECT value FROM {} WHERE ticker = ? AND metric = ? AND date = ?'''
     def _get_db_value(self, ticker, date_, metric):
-        args = (ticker, date_,  metric.metric_name)
-        return self.connection.execute(self.get_multiple_stm.format(self.table), 
-                                        args).fetchone()
+        args = (ticker, metric.metric_name, date_)
+        stmt_template = self.get_multiple_stm.format(self.table)
+        val_from_db = self.connection.execute(stmt_template, args).fetchone()
+        return val_from_db[0] if val_from_db else None
     
     insert_stmt = '''INSERT INTO {} (ticker, date, metric, value) VALUES (?, ?, ?, ?)'''
     def _set_db_value(self, ticker, date_, metric, value):
@@ -72,8 +73,8 @@ class SQLLiteMultiplesCache(object):
             value = self._get_multiple_value(ticker, date_, metric)
             self._set_db_value(ticker, date_, metric, value)
         return value
-    
-class TestsMultiplesCache(unittest.TestCase):
+
+class TestsSQLiteMultiplesCache(unittest.TestCase):
     db_path = '/tmp/multiples.db'
     def setUp(self):
         try:
@@ -97,19 +98,30 @@ class TestsMultiplesCache(unittest.TestCase):
         self.assertIn(cache.table, cache.connection.execute(qry).fetchone())
         
     def test_get_value(self):
-        assert_value = 3.14
         class FakeMetric(object):
             filing_type='10-Q'
             metric_name = 'earnings'
+
             @classmethod
             def value_from_filing(cls, *args, **kwargs):
-                return assert_value + 1
+                return cls.assert_value
         ticker = 'AAPL'
         date_ = date(2012, 1, 1)
+        FakeMetric.assert_value = 3.14
         val_from_cache = self.cache.get(ticker, date_, FakeMetric)
-        self.assertEqual(val_from_cache, assert_value)
-        self.assertEqual(self.cache._get_db_value(ticker, date_, FakeMetric), 
-                         assert_value)
+        self.assertEqual(val_from_cache, FakeMetric.assert_value)
+        val_from_db = self.cache._get_db_value(ticker, date_, FakeMetric)
+        self.assertEqual(val_from_db, FakeMetric.assert_value)
+        other_metric = FakeMetric()
+        msft_price = 2.72
+        FakeMetric.assert_value = msft_price
+        other_ticker = 'msft'
+        other_val_from_cache = self.cache.get(other_ticker, date_, other_metric)
+        self.assertEqual(other_val_from_cache, msft_price)
+        
+    def test_db_persistence(self):
+        pass
+        
         
 
 @unittest.SkipTest
