@@ -6,15 +6,16 @@ Created on Feb 16, 2013
 '''
 from zipline.algorithm import TradingAlgorithm
 from datetime import date, datetime, time
-from fundamentals import price_to_earnings, SQLLiteMultiplesCache
+from fundamentals import SQLLiteMultiplesCache
 from accounting_metrics import QuarterlyEPS
+import logging
 
 DOW_TICKERS = ['MMM', 'AA', 'AXP', 'T', 'BAC', 'BA', 'CAT', 'CVX', 
                'CSCO', 'DD', 'XOM', 'GE', 'HPQ', 'HD', 'INTC', 'IBM', 
                'JNJ', 'JPM', 'MCD', 'MRK', 'MSFT', 'PFE', 'PG', 'KO',
                'TRV', 'UTX', 'UNH', 'VZ', 'WMT', 'DIS']
 
-    
+logger = logging.basicConfig(level=logging.DEBUG)
 
 class BuyValueStocks(TradingAlgorithm):
     def __init__(self, *args, **kwargs):
@@ -28,14 +29,20 @@ class BuyValueStocks(TradingAlgorithm):
         for ticker in DOW_TICKERS:
             ticker_data = data[ticker]
             trading_date = ticker_data.datetime.to_datetime().date()
+            price = ticker_data.price
             earnings = self.multiples_cache.get(ticker=ticker, 
                                                 date_=trading_date, 
                                                 metric=QuarterlyEPS)
-            pe = earnings / ticker_data.price
+            pe = price / (earnings * 4)
+            logging.debug('p/e for {} on {} is {}'.format(ticker,
+                                                         trading_date,
+                                                         pe))
             if pe < 10:
+                logging.debug('buying {}'.format(ticker))
                 self.order(ticker, 1)
                 self.buy = True
             else:
+                logging.debug('selling {}'.format(ticker))
                 self.order(ticker, 1)
                 self.sell = True
             
@@ -45,8 +52,8 @@ if __name__ == '__main__':
     from zipline.utils.factory import load_from_yahoo
     from dateutil import tz
     utc = tz.gettz('UTC')
-    period_start = datetime.combine(date(2010, 1, 1), time(tzinfo=utc))
-    period_end = datetime.combine(date(2013, 1, 1), time(tzinfo=utc))
+    period_start = datetime.combine(date(2012, 1, 1), time(tzinfo=utc))
+    period_end = datetime.combine(date(2012, 1, 10), time(tzinfo=utc))
     data = load_from_yahoo(stocks=DOW_TICKERS, start=period_start, end=period_end)
     algo = BuyValueStocks()
     results = algo.run(data)
