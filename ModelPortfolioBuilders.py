@@ -14,7 +14,7 @@ class EqualWeights():
         self.percentage_of_universe_to_hold = percentage_of_universe_to_hold
         
         
-    def build_portfolio(self, ordered_universe, security_prices):
+    def build_portfolio(self, ordered_universe, security_prices, target_value):
         '''Takes the universe ordered from highest expected return to lowest.
             Returns the model portfolio.
         '''
@@ -22,7 +22,7 @@ class EqualWeights():
         num_positions_to_hold = int(size_of_universe * 
                                       self.percentage_of_universe_to_hold)
         desired_securities = ordered_universe[:num_positions_to_hold]
-        value_of_each_position = self.target_value / num_positions_to_hold
+        value_of_each_position = target_value / num_positions_to_hold
         model_portfolio = {}
         for security in desired_securities:
             model_position = value_of_each_position / security_prices[security]
@@ -42,10 +42,10 @@ class TestEqualWeightsPortfolio(unittest.TestCase):
         num_positions_to_hold = int(percentage_of_universe_to_buy * 
                                     len(self.ordered_universe))
         builder = EqualWeights()
-        builder.target_value = target_portfolio_value
 
         model_portfolio = builder.build_portfolio(self.ordered_universe, 
-                                                  self.security_prices)
+                                                  self.security_prices,
+                                                  target_portfolio_value)
         self.assertEqual(len(model_portfolio), num_positions_to_hold)
         value_of_each_position = target_portfolio_value / num_positions_to_hold
         for ticker, price in self.security_prices.items()[:num_positions_to_hold]:
