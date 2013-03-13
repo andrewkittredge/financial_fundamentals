@@ -9,6 +9,8 @@ from datetime import date, datetime, time
 from fundamentals import SQLLiteMultiplesCache
 from accounting_metrics import QuarterlyEPS
 import logging
+from ModelPortfolioBuilders import EqualWeights
+from trade_generators import AlwaysTrades
 
 DOW_TICKERS = ['MMM', 'AA', 'AXP', 'T', 'BAC', 'BA', 'CAT', 'CVX', 
                'CSCO', 'DD', 'XOM', 'GE', 'HPQ', 'HD', 'INTC', 'IBM', 
@@ -21,11 +23,16 @@ class BuyValueStocks(TradingAlgorithm):
     def __init__(self, *args, **kwargs):
         TradingAlgorithm.__init__(self, *args, **kwargs)
         self.multiples_cache = SQLLiteMultiplesCache()
+        self.model_portfolio_builder = EqualWeights()
+        self.builds_trades = AlwaysTrades()
+        self.universe = DOW_TICKERS
+        self.holdings = {}
         
     num_days_processed = 0
     def handle_data(self, data):
         print self.num_days_processed
         self.num_days_processed += 1
+        inputs = []
         for ticker in DOW_TICKERS:
             ticker_data = data[ticker]
             trading_date = ticker_data.datetime.to_datetime().date()
@@ -33,19 +40,31 @@ class BuyValueStocks(TradingAlgorithm):
             earnings = self.multiples_cache.get(ticker=ticker, 
                                                 date_=trading_date, 
                                                 metric=QuarterlyEPS)
-            pe = price / (earnings * 4)
+            if earnings < 0:
+                earnings = .00001
+            pe = price / earnings
+            inputs.append(PortfolioInput(ticker=ticker, pe=pe, price=price))
             logging.debug('p/e for {} on {} is {}'.format(ticker,
                                                          trading_date,
                                                          pe))
-            if pe < 10:
-                logging.debug('buying {}'.format(ticker))
-                self.order(ticker, 1)
-                self.buy = True
-            else:
-                logging.debug('selling {}'.format(ticker))
-                self.order(ticker, 1)
-                self.sell = True
+        ordered_universe = [input_.ticker for input_ in 
+                            sorted(inputs, key=lambda input_ : input_.pe)]
+        security_prices = dict((input_.ticker, input_.price) for input_ in inputs)
+        model_portfolio = self.model_portfolio_builder.build_portfolio(ordered_universe, 
+                                                                       security_prices, 
+                                                                       target_value=100000)
+        trades = self.builds_trades.build_trades(self.holdings, model_portfolio)
+        
+        for ticker, trade in trades.iteritems():
+            self.order(ticker, trade)
+        self.holdings = model_portfolio
             
+        print ordered_universe
+
+from collections import namedtuple
+PortfolioInput = namedtuple('PortfolioInut', ['ticker', 'pe', 'price'])
+
+        
 if __name__ == '__main__':
     import requests_cache
     requests_cache.configure('fundamentals_cache')
@@ -57,3 +76,4 @@ if __name__ == '__main__':
     data = load_from_yahoo(stocks=DOW_TICKERS, start=period_start, end=period_end)
     algo = BuyValueStocks()
     results = algo.run(data)
+    
