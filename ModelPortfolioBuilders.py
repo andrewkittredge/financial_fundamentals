@@ -19,8 +19,8 @@ class EqualWeights():
             Returns the model portfolio.
         '''
         size_of_universe = len(ordered_universe)
-        num_positions_to_hold = int(size_of_universe * 
-                                      self.percentage_of_universe_to_hold)
+        num_positions_to_hold = int(round(size_of_universe * 
+                                      self.percentage_of_universe_to_hold))
         desired_securities = ordered_universe[:num_positions_to_hold]
         value_of_each_position = target_value / num_positions_to_hold
         model_portfolio = {}
@@ -39,8 +39,8 @@ class TestEqualWeightsPortfolio(unittest.TestCase):
     def test_model_portfolio_attributes(self):
         percentage_of_universe_to_buy = .5
         target_portfolio_value = 10. * 10 ** 6
-        num_positions_to_hold = int(percentage_of_universe_to_buy * 
-                                    len(self.ordered_universe))
+        num_positions_to_hold = int(round(percentage_of_universe_to_buy * 
+                                    len(self.ordered_universe)))
         builder = EqualWeights()
 
         model_portfolio = builder.build_portfolio(self.ordered_universe, 
@@ -51,4 +51,4 @@ class TestEqualWeightsPortfolio(unittest.TestCase):
         for ticker, price in self.security_prices.items()[:num_positions_to_hold]:
             model_position = model_portfolio[ticker]
             position_value = model_position * price
-            self.assertEqual(position_value, value_of_each_position)
+            self.assertAlmostEqual(position_value, value_of_each_position, delta=1.)
