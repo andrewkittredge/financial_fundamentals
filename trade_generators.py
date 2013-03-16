@@ -17,7 +17,8 @@ class AlwaysTrades(object):
         for ticker in securities_to_trade:
             change_in_position = model_portfolio.get(ticker, 0) -\
                                                  holdings.get(ticker, 0)
-            trades[ticker] = change_in_position
+            # Don't trade fractional shares.
+            trades[ticker] = int(round(change_in_position))
         return trades
     
 import unittest
