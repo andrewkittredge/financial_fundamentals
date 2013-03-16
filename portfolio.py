@@ -23,21 +23,36 @@ class Portfolio(dict):
                    security, position in self.iteritems()) + self.cash
                    
     def buy(self, security, order_size, cost):
+        assert cost > 0
+        self.check_buy(cost)
         self[security] = self.get(security, 0) + order_size
         self.cash -= cost
         
     def sell(self, security, order_size, proceeds):
-        self.check_sale(security, order_size)
+        assert proceeds > 0 and order_size > 0
+        self.check_sell(security, order_size)
         self[security] = self.get(security, 0) - order_size 
         self.cash += proceeds
         
-    def check_sale(self, security, order_size):
+    def check_sell(self, security, order_size):
         pass
     
+    def check_buy(self, cost):
+        pass
+    
+    def __str__(self, *args, **kwargs):
+        return 'Cash {}: Positions {}'.format(self.cash, super(Portfolio, self).__str__())
+        
 class LongOnlyPortfolio(Portfolio):
-    def check_sale(self, security, order_size):
+    '''Enforces long-only constraint.
+    
+    '''
+    def check_sell(self, security, order_size):
         assert self.get(security, 0) - order_size >= 0, \
                             'Long only constraint violated'
+    
+    def check_buy(self, cost):
+        assert self.cash - cost > 0, 'Negative cash.'
         
 import unittest
 class TestsPortfolio(unittest.TestCase):
@@ -57,7 +72,7 @@ class TestsPortfolio(unittest.TestCase):
         portfolio = Portfolio(initial_cash=100.)
         self.assertEqual(portfolio.nav({}), 100)
         
-    def test_sale(self):
+    def test_sell(self):
         portfolio = self.portfolio
         security = 'msft'
         initial_position = portfolio[security]
@@ -74,7 +89,7 @@ class TestsPortfolio(unittest.TestCase):
         initial_position = portfolio[security]
         initial_cash = portfolio.cash
         order_size = 100
-        cost = 1000
+        cost = 10
         portfolio.buy(security, order_size, cost)
         self.assertEqual(portfolio.cash, initial_cash - cost)
         self.assertEqual(portfolio[security], initial_position + order_size)
@@ -87,3 +102,9 @@ class TestsLongOnlyPortfolio(TestsPortfolio):
                                                            order_size=1, 
                                                            proceeds=0.)
         self.assertRaises(AssertionError, try_short_sale)
+        
+    def test_no_short_cash(self):
+        try_short_cash = lambda : self.portfolio.buy(security='hog', 
+                                                     order_size=1, 
+                                                     cost=1000000000.)
+        self.assertRaises(AssertionError, try_short_cash)
