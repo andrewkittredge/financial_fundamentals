@@ -40,6 +40,9 @@ class Portfolio(dict):
     def check_buy(self, cost):
         pass
     
+    def compliance(self):
+        pass
+    
     def __str__(self, *args, **kwargs):
         return 'Cash {}: Positions {}'.format(self.cash, super(Portfolio, self).__str__())
         
@@ -52,7 +55,10 @@ class LongOnlyPortfolio(Portfolio):
                             'Long only constraint violated'
     
     def check_buy(self, cost):
-        assert self.cash - cost > 0, 'Negative cash.'
+        pass
+        
+    def compliance(self):
+        assert self.cash >= 0
         
 import unittest
 class TestsPortfolio(unittest.TestCase):
@@ -103,8 +109,6 @@ class TestsLongOnlyPortfolio(TestsPortfolio):
                                                            proceeds=0.)
         self.assertRaises(AssertionError, try_short_sale)
         
-    def test_no_short_cash(self):
-        try_short_cash = lambda : self.portfolio.buy(security='hog', 
-                                                     order_size=1, 
-                                                     cost=1000000000.)
-        self.assertRaises(AssertionError, try_short_cash)
+    def test_compliance(self):
+        self.portfolio.buy(security='hog', order_size=1, cost=1000000)
+        self.assertRaises(AssertionError, self.portfolio.compliance)
