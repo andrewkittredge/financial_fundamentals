@@ -25,12 +25,6 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-def price_to_earnings(ticker, date_, price):
-    
-    filing = filing_before(ticker=ticker, 
-                           filing_type='10-Q', 
-                           date_after=date_)
-    return price /(  QuarterlyEPS.value(filing) * 4)
 
 class SQLLiteMultiplesCache(object):
     
@@ -55,14 +49,16 @@ class SQLLiteMultiplesCache(object):
                                               date_after=date_)
         return metric.value_from_filing(filing)
     
-    get_multiple_stm = '''SELECT value FROM {} WHERE ticker = ? AND metric = ? AND date = ?'''
+    get_multiple_stm = '''SELECT value FROM {} WHERE ticker = ? AND 
+                        metric = ? AND date = ?'''
     def _get_db_value(self, ticker, date_, metric):
         args = (ticker, metric.metric_name, date_)
         stmt_template = self.get_multiple_stm.format(self.table)
         val_from_db = self.connection.execute(stmt_template, args).fetchone()
         return val_from_db[0] if val_from_db else None
     
-    insert_stmt = '''INSERT INTO {} (ticker, date, metric, value) VALUES (?, ?, ?, ?)'''
+    insert_stmt = '''INSERT INTO {} (ticker, date, metric, value) 
+                    VALUES (?, ?, ?, ?)'''
     def _set_db_value(self, ticker, date_, metric, value):
         with self.connection:
             args = (ticker, date_, metric.metric_name, value)
@@ -121,19 +117,6 @@ class TestsSQLiteMultiplesCache(unittest.TestCase):
         self.assertEqual(other_val_from_cache, msft_price)
         
 
-@unittest.SkipTest
-class TestsFundamentals(unittest.TestCase):
-    def setUp(self):
-        import requests_cache
-        requests_cache.configure('fundamentals_cache_test')
-
-    def test_pe(self):
-        dec_28_2011_appl_pe = 14.55 # from http://ycharts.com/companies/AAPL/pe_ratio
-        dec_28_2011_appl_price = 402.64
-        metric_date = date(2011, 12, 28)
-        computed_pe = price_to_earnings('aapl', metric_date, dec_28_2011_appl_price)
-        self.assertAlmostEqual(computed_pe, dec_28_2011_appl_pe, delta=.1)
-        
 if __name__ == '__main__':
     cache = SQLLiteMultiplesCache()
     cache.create_database()
