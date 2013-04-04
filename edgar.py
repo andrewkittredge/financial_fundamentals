@@ -22,7 +22,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
-FILING_URLS = defaultdict(dict)
+
 
 def get_CIK(ticker):
     search_url = 'http://www.sec.gov/cgi-bin/browse-edgar?company=&match=&CIK={}&filenum=&State=&Country=&SIC=&owner=exclude&Find=Find+Companies&action=getcompany'.format(ticker)
@@ -67,7 +67,7 @@ def find_urls_on_search_page(documents_urls, ticker, filing_type, filing_url_map
 class NoFilingsFound(Exception):
     pass
 
-
+FILING_URLS = defaultdict(dict)
 def populate_filing_urls_map(ticker, filing_type, filing_url_map=FILING_URLS):
     cik = get_CIK(ticker)
     documents_urls = get_document_urls(cik, filing_type)
@@ -81,6 +81,8 @@ def _filing_url_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
     if ticker not in filing_map:
         populate_filing_urls_map(ticker, filing_type, filing_map)
     filing_dates = sorted(key[1] for key in filing_map[ticker])
+    if not filing_dates:
+        raise XBRLNotAvailable('No {}s found for {}'.format(filing_type, ticker))
     last_filing_before = filing_dates[bisect_left(filing_dates, date_after) - 1]
     return filing_map[ticker][(filing_type, last_filing_before)]
 
@@ -132,7 +134,8 @@ class TestsEdgar(unittest.TestCase):
         
     @mock.patch('requests.models.Response.text', new_callable=mock.PropertyMock)
     def test_ABBV(self, text):
-        '''Test page with no 10-Q's, ABBV had just been spun off or something.
+        '''Test page with no 10-Q's, downloaded 2013-3-2, 
+        ABBV had just been spun off or something.
         
         '''
         with open('test_docs/abbv_search_results.html') as test_html:
@@ -142,10 +145,13 @@ class TestsEdgar(unittest.TestCase):
         self.assertFalse(list(get_document_urls(cik=abbv_CIK, filing_type='10-Q')))
         ticker = 'ABBV'
         filing_type = '10-Q'
-        period_end_date = date(2013, 1, 1)
+        date_after = date(2013, 1, 2)
         
-    
-        self.assertRaises(XBRLNotAvailable, get_abbv)
+        finds_no_filings = lambda : filing_before(ticker, 
+                                                  filing_type, 
+                                                  date_after, 
+                                                  filing_map=defaultdict(dict))
+        self.assertRaises(XBRLNotAvailable, finds_no_filings)
 
         
         
