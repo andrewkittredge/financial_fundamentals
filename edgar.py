@@ -29,10 +29,11 @@ def get_CIK(ticker):
     search_results_page = BeautifulSoup(requests.get(search_url).text)
     cik = re.search('(\d+)', search_results_page.find('span', {'class' : 'companyName'}).a.text).group()
     return cik
+
+def get_document_urls(cik, filing_type):
+    '''Get the edgar filing_type document pages for the CIK.
     
-SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type={filing_type}&dateb=&owner=exclude&count=100'
-def populate_filing_urls_map(ticker, filing_type, filing_url_map=FILING_URLS):
-    cik = get_CIK(ticker)
+    '''
     search_url = SEARCH_URL.format(cik=cik, filing_type=filing_type)
     search_page = requests.get(search_url).text
     search_results_page = BeautifulSoup(search_page)
@@ -42,6 +43,11 @@ def populate_filing_urls_map(ticker, filing_type, filing_url_map=FILING_URLS):
     for xbrl_row in xbrl_rows:
         documents_page = xbrl_row.find('a', {'id' : 'documentsbutton'})['href']
         documents_url = 'http://sec.gov' + documents_page
+        yield documents_url
+    
+
+def find_urls_on_search_page(documents_urls, ticker, filing_type, filing_url_map):
+    for documents_url in documents_urls:
         filing_page = BeautifulSoup(requests.get(documents_url).text)
         period_of_report_elem = filing_page.find('div', text='Period of Report')
         filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
@@ -56,7 +62,17 @@ def populate_filing_urls_map(ticker, filing_type, filing_url_map=FILING_URLS):
                 break
         filing_xbrl_url = urljoin('http://www.sec.gov', xbrl_link)
         filing_url_map[ticker][(filing_type, filing_date)] = filing_xbrl_url
-            
+
+class NoFilingsFound(Exception):
+    pass
+
+SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type={filing_type}&dateb=&owner=exclude&count=100'
+def populate_filing_urls_map(ticker, filing_type, filing_url_map=FILING_URLS):
+    cik = get_CIK(ticker)
+    documents_urls = get_document_urls(cik, filing_type)
+    find_urls_on_search_page(documents_urls, ticker, filing_type, filing_url_map)
+        
+
 def get_filing_xbrl_url(ticker, filing_type, period_end_date):
     if ticker not in FILING_URLS:
         populate_filing_urls_map(ticker, filing_type)
@@ -92,12 +108,12 @@ def filing_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
     return FILINGS_CACHE.setdefault(filing_url, 
                                     ET.fromstring(requests.get(filing_url).text))
 
-
+import mock
 class TestsEdgar(unittest.TestCase):
     def setUp(self):
         import requests_cache
         requests_cache.configure('fundamentals_cache_test')
-
+    
     def test_get_filing(self):
         get_filing(ticker='aapl', filing_type='10-Q', 
                    period_end_date=date(2012, 12, 29))
@@ -115,7 +131,7 @@ class TestsEdgar(unittest.TestCase):
                                  filing_url_map=test_map)
         self.assertEqual(test_map[ticker][(filing_type, date(2012, 12, 29))], 
                          'http://www.sec.gov/Archives/edgar/data/320193/000119312513022339/aapl-20121229.xml')
-        
+    
     def test_last_filing_before(self):
         test_map = defaultdict(dict)
         ticker = 'aapl'
@@ -136,5 +152,25 @@ class TestsEdgar(unittest.TestCase):
                           date_after=date(2010, 1, 04), filing_map=defaultdict(dict))
         self.assertTrue(filing_url.endswith('.xml'))
         
+    @mock.patch('requests.models.Response.text', new_callable=mock.PropertyMock)
+    def test_ABBV(self, text):
+        '''Test page with no 10-Q's, ABBV had just been spun off or something.
+        
+        '''
+        with open('test_docs/abbv_search_results.html') as test_html:
+            text.return_value = test_html.read()
+
+        abbv_CIK = '0001551152'
+        self.assertFalse(list(get_document_urls(cik=abbv_CIK, filing_type='10-Q')))
+        ticker = 'ABBV'
+        filing_type = '10-Q'
+        period_end_date = date(2013, 1, 1)
+        
+        
+        get_abbv = lambda : get_filing_xbrl_url(ticker, filing_type, period_end_date)
+        self.assertRaises(XBRLNotAvailable, get_abbv)
+
+        
+        
 if __name__ == '__main__':
-    print get_filing('aapl', '10-K', date(2012, 12, 31))
+    print list(get_document_urls(cik='0001551152', filing_type='10-Q'))
