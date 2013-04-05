@@ -5,7 +5,7 @@ Created on Jan 26, 2013
 '''
 
 from datetime import date
-from edgar import filing_before
+from edgar import filing_before, NoFilingFound
 from accounting_metrics import QuarterlyEPS
 import logging
 import unittest
@@ -44,9 +44,12 @@ class SQLLiteMultiplesCache(object):
                              date_after=date_after)
         
     def _get_multiple_value(self, ticker, date_, metric):
-        filing = self._get_filing_before_date(ticker=ticker,
+        try:
+            filing = self._get_filing_before_date(ticker=ticker,
                                               filing_type=metric.filing_type,
                                               date_after=date_)
+        except NoFilingFound:
+            raise MissingData('Filing for {}, {} not found.'.format(ticker, date_))
         return metric.value_from_filing(filing)
     
     get_multiple_stm = '''SELECT value FROM {} WHERE ticker = ? AND 
@@ -70,6 +73,10 @@ class SQLLiteMultiplesCache(object):
             value = self._get_multiple_value(ticker, date_, metric)
             self._set_db_value(ticker, date_, metric, value)
         return value
+
+class MissingData(Exception):
+    pass
+
 
 class TestsSQLiteMultiplesCache(unittest.TestCase):
     db_path = '/tmp/multiples.db'

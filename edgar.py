@@ -88,9 +88,15 @@ def _filing_url_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
 
 FILINGS_CACHE = {}
 def filing_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
-    filing_url = _filing_url_before(ticker, filing_type, date_after, filing_map)
+    try:
+        filing_url = _filing_url_before(ticker, filing_type, date_after, filing_map)
+    except XBRLNotAvailable:
+        raise NoFilingFound('No filing found for ticker {}'.format(ticker))
     return FILINGS_CACHE.setdefault(filing_url, 
                                     ET.fromstring(requests.get(filing_url).text))
+
+class NoFilingFound(Exception):
+    pass
 
 import mock
 class TestsEdgar(unittest.TestCase):
