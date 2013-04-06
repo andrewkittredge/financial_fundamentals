@@ -6,22 +6,19 @@ Created on Feb 16, 2013
 '''
 from zipline.algorithm import TradingAlgorithm
 from datetime import date, datetime, time
-from fundamentals import SQLLiteMultiplesCache
+from fundamentals import SQLLiteMultiplesCache, MissingData
 from accounting_metrics import QuarterlyEPS
 import logging
 from ModelPortfolioBuilders import EqualWeights
 from trade_generators import AlwaysTrades
+import warnings
 
 
-DOW_TICKERS = ['MMM', 'AA', 'AXP', 'T', 'BAC', 'BA', 'CAT', 'CVX', 
-               'CSCO', 'DD', 'XOM', 'GE', 'HPQ', 'HD', 'INTC', 'IBM', 
-               'JNJ', 'JPM', 'MCD', 'MRK', 'MSFT', 'PFE', 'PG', 'KO',
-               'TRV', 'UTX', 'UNH', 'VZ', 'WMT', 'DIS']
 
 logging.basicConfig(level=logging.DEBUG)
 
 class BuyValueStocks(TradingAlgorithm):
-    def __init__(self, universe=DOW_TICKERS, percent_cash=.05):
+    def __init__(self, universe, percent_cash=.05):
         TradingAlgorithm.__init__(self)
         self.multiples_cache = SQLLiteMultiplesCache()
         self.model_portfolio_builder = EqualWeights()
@@ -39,9 +36,13 @@ class BuyValueStocks(TradingAlgorithm):
             
             price = ticker_data.price
             prices[ticker] = price
-            earnings = self.multiples_cache.get(ticker=ticker, 
+            try:
+                earnings = self.multiples_cache.get(ticker=ticker, 
                                                 date_=trading_date, 
                                                 metric=QuarterlyEPS)
+            except MissingData:
+                warnings.warn('No data for {} on {}'.format(ticker, trading_date))
+                continue
 
 
             pe = price / earnings if earnings > 0 else float('inf') # negative p/e is strange
@@ -60,7 +61,8 @@ class BuyValueStocks(TradingAlgorithm):
                                                  model_portfolio=model_portfolio)
         
         for ticker, trade in trades.iteritems():
-            self.order(ticker, trade)
+            if abs(trade) > 0:
+                self.order(ticker, trade)
 
         
     def build_model_portfolio(self, ordered_universe,
@@ -73,25 +75,36 @@ from collections import namedtuple
 PortfolioInput = namedtuple('PortfolioInput', ['ticker', 'pe', 'price'])
 
 
-def run_algo():
+def run_algo(start, end, tickers):
     import requests_cache
     requests_cache.configure('fundamentals_cache')
     from zipline.utils.factory import load_from_yahoo
     from dateutil import tz
     utc = tz.gettz('UTC')
-    period_start = datetime.combine(date(2012, 12, 1), time(tzinfo=utc))
-    period_end = datetime.combine(date(2013, 1, 10), time(tzinfo=utc))
-    test_tickers = ['AA', 'MMM', 'AXP']
-    data = load_from_yahoo(stocks=test_tickers, 
+    period_start = datetime.combine(start, time(tzinfo=utc))
+    period_end = datetime.combine(end, time(tzinfo=utc))
+    data = load_from_yahoo(stocks=tickers, 
                            start=period_start, 
                            end=period_end)
 
     algo = BuyValueStocks(percent_cash=.1,
-                          universe=test_tickers)
+                          universe=tickers)
     results = algo.run(data)
-    return results
-    
+    return data, results
+
+import unittest
+class TestsAlgorithmRunner(unittest.TestCase):
+    def test_february(self):
+        '''This was throwing an error.
+        
+        '''
+        from indicies import DOW_TICKERS
+        run_algo(start=date(2013, 2, 1), 
+                 end=date(2013, 2, 27), 
+                 tickers=DOW_TICKERS)
     
 if __name__ == '__main__':
-    run_algo()
-    
+    from indicies import CLEANED_S_P_500_TICKERS
+    data, results = run_algo(start=date(2013, 1, 1), 
+                             end=date(2013, 3, 30), 
+                             tickers=CLEANED_S_P_500_TICKERS)
