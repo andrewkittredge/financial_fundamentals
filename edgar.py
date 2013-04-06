@@ -27,8 +27,19 @@ logger.addHandler(ch)
 def get_CIK(ticker):
     search_url = 'http://www.sec.gov/cgi-bin/browse-edgar?company=&match=&CIK={}&filenum=&State=&Country=&SIC=&owner=exclude&Find=Find+Companies&action=getcompany'.format(ticker)
     search_results_page = BeautifulSoup(requests.get(search_url).text)
-    cik = re.search('(\d+)', search_results_page.find('span', {'class' : 'companyName'}).a.text).group()
-    return cik
+    try:
+        company_name = search_results_page.find('span', {'class' : 'companyName'}).a.text
+    except AttributeError:
+        if search_results_page.find('h1', text='No matching Ticker Symbol.'):
+            raise CouldNotFindCIK('Edgar cannot match {}'.format(ticker))
+        else:
+            raise
+    else:
+        cik = re.search('(\d+)', company_name).group()
+        return cik
+
+class CouldNotFindCIK(Exception):
+    pass
 
 SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type={filing_type}&dateb=&owner=exclude&count=100'
 def get_document_urls(cik, filing_type):
@@ -157,9 +168,22 @@ class TestsEdgar(unittest.TestCase):
                                                   filing_type, 
                                                   date_after, 
                                                   filing_map=defaultdict(dict))
-        self.assertRaises(XBRLNotAvailable, finds_no_filings)
+        self.assertRaises(NoFilingFound, finds_no_filings)
 
+    def test_PDCO_CIK(self):
+        '''This failed.
         
+        '''
+        ticker = 'PDCO'
+        cik = get_CIK(ticker)
+        self.assertEqual(cik, '0000891024')
+        
+    def test_no_matching_ticker(self):
+        '''SEC doesn't know about PPL for some reason.
+        
+        '''
+        throws_missing_ticker = lambda : get_CIK('PPL')
+        self.assertRaises(CouldNotFindCIK, throws_missing_ticker)
         
 if __name__ == '__main__':
     print list(get_document_urls(cik='0001551152', filing_type='10-Q'))
