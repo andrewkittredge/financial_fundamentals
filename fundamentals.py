@@ -77,19 +77,20 @@ class SQLLiteMultiplesCache(object):
 class MissingData(Exception):
     pass
 
+TEST_DB_PATH = '/tmp/multiples.db'
+def new_cache(db_path):
+    try:
+        os.remove(db_path)
+    except OSError:
+        pass
+    cache = SQLLiteMultiplesCache(db_path=db_path)
+    cache.create_database()
+    return cache
 
 class TestsSQLiteMultiplesCache(unittest.TestCase):
-    db_path = '/tmp/multiples.db'
+    db_path = TEST_DB_PATH
     def setUp(self):
-        try:
-            os.remove(self.db_path)
-        except OSError:
-            pass
-        self.cache = SQLLiteMultiplesCache(db_path=self.db_path)
-        self.cache.create_database()
-    
-    def tearDown(self):
-        os.remove(self.db_path)
+        self.cache = new_cache(db_path=self.db_path)
         
     def test_db_creation(self):
         try:
