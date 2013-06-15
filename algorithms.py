@@ -12,6 +12,7 @@ import logging
 from ModelPortfolioBuilders import EqualWeights
 from trade_generators import AlwaysTrades
 import warnings
+from math import isnan
 
 
 
@@ -30,11 +31,15 @@ class BuyValueStocks(TradingAlgorithm):
     def handle_data(self, data):
         inputs = []
         prices = {}
+        trading_date = self.datetime.date()
         for ticker in self.universe:
             ticker_data = data[ticker]
-            trading_date = ticker_data.datetime.to_datetime().date()
             
             price = ticker_data.price
+            if isnan(price):
+                warnings.warn('No price for {} on {}'.format(ticker,
+                                                             trading_date))
+                continue
             prices[ticker] = price
             try:
                 earnings = self.multiples_cache.get(ticker=ticker, 
@@ -54,6 +59,7 @@ class BuyValueStocks(TradingAlgorithm):
         security_prices = dict((input_.ticker, input_.price) for input_ in inputs)
         
         target_value = self.portfolio['portfolio_value']
+        int(target_value)
         model_portfolio = self.build_model_portfolio(ordered_universe,
                                                     security_prices, 
                                                     target_value)
@@ -83,10 +89,11 @@ def run_algo(start, end, tickers):
     utc = tz.gettz('UTC')
     period_start = datetime.combine(start, time(tzinfo=utc))
     period_end = datetime.combine(end, time(tzinfo=utc))
-    data = load_from_yahoo(stocks=tickers, 
+    data = load_from_yahoo(indexes={'SPX': '^GSPC'},
+                           stocks=tickers, 
                            start=period_start, 
                            end=period_end)
-
+    data['PEG'], _ = data['PEG'].align(data['SPX'], method='ffill')
     algo = BuyValueStocks(percent_cash=.1,
                           universe=tickers)
     results = algo.run(data)
@@ -105,6 +112,6 @@ class TestsAlgorithmRunner(unittest.TestCase):
     
 if __name__ == '__main__':
     from indicies import CLEANED_S_P_500_TICKERS
-    data, results = run_algo(start=date(2013, 1, 1), 
+    data, results = run_algo(start=date(2010, 3, 11), 
                              end=date(2013, 3, 30), 
                              tickers=CLEANED_S_P_500_TICKERS)

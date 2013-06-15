@@ -25,6 +25,8 @@ class EqualWeights():
         value_of_each_position = target_value / num_positions_to_hold
         model_portfolio = {}
         for security in desired_securities:
+            import numpy
+            assert not numpy.isnan(security_prices[security])
             model_position = value_of_each_position / security_prices[security]
             model_portfolio[security] = model_position
         return model_portfolio

@@ -9,7 +9,7 @@ from collections import namedtuple
 class AlwaysTrades(object):
     @classmethod
     def build_trades(cls, positions, model_portfolio):
-        '''holdings and model_portfolio are dicts of ticker, number of shares
+        '''positions and model_portfolio are dicts of ticker, number of shares
         pairs.
         
         '''
@@ -21,7 +21,10 @@ class AlwaysTrades(object):
             desired_shares = model_portfolio.get(ticker, 0)
             change_in_position = desired_shares - current_shares
             # Don't trade fractional shares.
+            
             trades[ticker] = int(round(change_in_position))
+            
+                
         return trades
     
 import unittest
