@@ -28,7 +28,7 @@ logger.addHandler(ch)
 
 class SQLLiteMultiplesCache(object):
     
-    def __init__(self, db_path='multiples.db', table='multiples'):
+    def __init__(self, db_path='/tmp/multiples.db', table='multiples'):
         self.table = table
         self.connection = sqlite3.connect(db_path)
         

@@ -13,6 +13,7 @@ from ModelPortfolioBuilders import EqualWeights
 from trade_generators import AlwaysTrades
 import warnings
 from math import isnan
+from financial_fundamentals import edgar
 
 
 
@@ -45,7 +46,7 @@ class BuyValueStocks(TradingAlgorithm):
                 earnings = self.multiples_cache.get(ticker=ticker, 
                                                 date_=trading_date, 
                                                 metric=QuarterlyEPS)
-            except MissingData:
+            except (MissingData, edgar.CouldNotFindCIK):
                 warnings.warn('No data for {} on {}'.format(ticker, trading_date))
                 continue
 
@@ -83,7 +84,7 @@ PortfolioInput = namedtuple('PortfolioInput', ['ticker', 'pe', 'price'])
 
 def run_algo(start, end, tickers):
     import requests_cache
-    requests_cache.configure('fundamentals_cache')
+    requests_cache.configure('/tmp/fundamentals_cache')
     from zipline.utils.factory import load_from_yahoo
     from dateutil import tz
     utc = tz.gettz('UTC')
