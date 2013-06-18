@@ -77,7 +77,7 @@ class SQLLiteMultiplesCache(object):
 class MissingData(Exception):
     pass
 
-TEST_DB_PATH = '/tmp/multiples.db'
+TEST_DB_PATH = '/tmp/multiples_test.db'
 def new_cache(db_path):
     try:
         os.remove(db_path)
