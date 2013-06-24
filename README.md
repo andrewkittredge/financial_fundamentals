@@ -5,7 +5,6 @@ caching for accounting metrics from XBRL downloaded from the sec's Edgar.
 
 
 
-#A hello world.
     from datetime import date
     from financial_fundamentals import fundamentals, accounting_metrics
     fundamentals_cache = fundamentals.SQLLiteMultiplesCache()
