@@ -2,6 +2,7 @@ financial_fundamentals
 ======================
 
 caching for accounting metrics from XBRL downloaded from the sec's Edgar.
+See the blog @ [http://andrewonfinance.blogspot.com/](http://andrewonfinance.blogspot.com/).
 
 
 
