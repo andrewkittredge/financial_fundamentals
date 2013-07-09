@@ -6,7 +6,6 @@ Created on Jan 26, 2013
 
 from datetime import date
 from edgar import filing_before, NoFilingFound
-from accounting_metrics import QuarterlyEPS
 import logging
 import unittest
 import sqlite3
