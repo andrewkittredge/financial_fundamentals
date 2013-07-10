@@ -15,6 +15,7 @@ class MongoPriceCache(object):
     _collection = _client.prices.prices
     def __init__(self, getter=YahooPriceGetter, collection=None):
         self._collection = collection or self._collection
+        self._getter = getter
         
     def get(self, symbols, start, end):
         pass
@@ -32,7 +33,7 @@ class MongoPriceCache(object):
     
     def _get_range(self, symbols, start, end):
         #get prices from yahoo.
-        pass
+        return self._getter.get(symbols, start, end)
 
 
 import datetime
@@ -80,7 +81,8 @@ class MongoPriceCacheTestCase(unittest.TestCase):
                                 'price' : price, 
                                 'date' : price_date}]
         self.cache._set(symbol_price_ranges)
-        db_price = self.collection.find_one({'date' : price_date, 'symbol' : symbol})
+        db_price = self.collection.find_one({'date' : price_date, 
+                                             'symbol' : symbol})
         self.assertEqual(db_price, price)
         
     def test_get_range(self):
@@ -97,4 +99,22 @@ class MongoPriceCacheTestCase(unittest.TestCase):
         self.assertEqual(len(prices_from_cache[symbol]), 1)
         price = prices_from_cache[symbol][0]
         self.assertDictEqual({'date' : price_date, 'symbol' : symbol}, price)
+        
+        
+    def test_partial_miss(self):
+        '''When we've already cached part of a range.
+        
+        '''
+        symbol = 'ABC'
+        
+        self.collection.insert({'symbol' : symbol, 'date' : datetime.datetime(2012, 12, 1)})
+        self.collection.insert({'symbol' : symbol, 'date' : datetime.datetime(2012, 12, 2)})
+        mock_getter = mock.Mock()
+        cache = MongoPriceCache(getter=mock_getter)
+        args = {'symbols' : {symbol,},
+                'start' : datetime.datetime(2012, 11, 30),
+                'end' : datetime.datetime(2012, 12, 31)}
+        cache.get(**args)
+        mock_getter.get.assert_called_once_with(**args)
+        
         
