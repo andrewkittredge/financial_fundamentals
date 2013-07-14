@@ -12,19 +12,19 @@ from itertools import groupby
 mongohost, mongoport = 'localhost', 27017
 
 from pandas.io.data import get_data_yahoo
-class YahooPriceGetter(object):
-    def get(self, symbols, start, end):
-        for symbol in symbols:
-            yield get_data_yahoo(name=symbol, start=start, end=end)
-            
+
+    
+def get_prices_from_yahoo(symbol, start, end):
+    '''Jack Diedrich told me to make this a function rather than a class.'''
+    return get_data_yahoo(name=symbol, start=start, end=end)
 
 class MongoPriceCache(object):
     '''The beginning of timeseries database.'''
     _client = MongoClient(mongohost, mongoport)
     _collection = _client.prices.prices
-    def __init__(self, getter=YahooPriceGetter, collection=None):
+    def __init__(self, gets_prices=get_prices_from_yahoo, collection=None):
         self._collection = collection or self._collection
-        self._getter = getter
+        self._get_prices = gets_prices
         
     def get(self, symbols, dates):
         '''returns an generator of (symbol, price_list) pairs.'''
@@ -48,8 +48,11 @@ class MongoPriceCache(object):
         pass
     
     def _get_set(self, symbols, dates):
+        start_date, end_date = min(dates), max(dates)
         for symbol in symbols:
-            prices = self._getter.get(symbol=symbol, dates=dates)
+            prices = self._get_prices(symbol=symbol, 
+                                      start=start_date,
+                                      end=end_date)
             if prices:
                 self._set(symbol, prices)
                 yield symbol, prices
@@ -60,7 +63,7 @@ class MongoPriceCache(object):
                                      'date' : price['date']}
                                     for price in prices)
 
-        
+
 import unittest
 import datetime
 import mock
@@ -71,8 +74,8 @@ class MongoPriceCacheTestCase(unittest.TestCase):
         self.db = client.test_database
         self.collection = client.test_database.prices
         self.mock_getter = mock.Mock()
-        self.mock_getter.get.return_value = []
-        self.cache = MongoPriceCache(getter=self.mock_getter, 
+        self.mock_getter.return_value = []
+        self.cache = MongoPriceCache(gets_prices=self.mock_getter, 
                                      collection=self.collection)
 
     def tearDown(self):
@@ -83,8 +86,10 @@ class MongoPriceCacheTestCase(unittest.TestCase):
         dates = [datetime.datetime(2012, 12, day) for day in range(1, 32)]
         symbols = ['XYZ',]
         list(self.cache.get(symbols=symbols, dates=dates))
-        self.mock_getter.get.assert_called_once_with(symbols=set(symbols), 
-                                                    dates=dates)
+        start_date, end_date = min(dates), max(dates)
+        self.mock_getter.assert_called_once_with(symbol=symbols[0],
+                                                     start=start_date,
+                                                     end=end_date) 
 
     def test_set(self):
         price_date = datetime.datetime(2012, 12, 1)
@@ -127,20 +132,23 @@ class MongoPriceCacheTestCase(unittest.TestCase):
         missing_dates = [first_missing_date, last_missing_date]
         self.cache.get(symbols=[symbol], dates=cached_dates + missing_dates)
         list(self.cache.get(symbols={symbol}, dates=missing_dates + cached_dates))
-        self.mock_getter.get.assert_called_once_with(symbols={symbol}, 
-                                                     dates=missing_dates + cached_dates)
-        
+        all_dates = missing_dates + cached_dates
+        start_date, end_date = min(all_dates), max(all_dates)
+        self.mock_getter.assert_called_once_with(symbol=symbol,
+                                                     start=start_date,
+                                                     end=end_date)
+
     def test_cache_set(self):
         '''Ensure that asking for something twice is not a cache miss.'''
         symbols = ['ABC']
         dates = [datetime.datetime(2012, 12, 1), datetime.datetime(2012, 12, 2)]
-        self.mock_getter.get.return_value = [{'date' : datetime.datetime(2012, 12, 1), 'price' : 6},
+        self.mock_getter.return_value = [{'date' : datetime.datetime(2012, 12, 1), 'price' : 6},
                                              {'date' : datetime.datetime(2012, 12, 2), 'price' : 7},
                                             ]
         list(self.cache.get(symbols=symbols, dates=dates))
-        self.mock_getter.get.assert_called_once()
+        self.mock_getter.assert_called_once()
         new_mock_getter = mock.Mock()
-        new_mock_getter.get.return_value = []
+        new_mock_getter.return_value = []
         self.cache._getter = new_mock_getter
         list(self.cache.get(symbols=symbols, dates=dates))
-        self.assertFalse(new_mock_getter.get.called)
+        self.assertFalse(new_mock_getter.called)
