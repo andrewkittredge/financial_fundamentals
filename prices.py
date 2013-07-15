@@ -13,7 +13,7 @@ mongohost, mongoport = 'localhost', 27017
 
 from pandas.io.data import get_data_yahoo
 import numpy as np
-
+import pymongo
     
 def get_prices_from_yahoo(symbol, start, end):
     '''Jack Diedrich told me to make this a function rather than a class.'''
@@ -28,6 +28,9 @@ class MongoPriceCache(object):
     _collection = _client.prices.prices
     def __init__(self, gets_prices=get_prices_from_yahoo, collection=None):
         self._collection = collection or self._collection
+        self._collection.ensure_index([('date', pymongo.ASCENDING), 
+                                       ('symbol', pymongo.ASCENDING)])
+        self._collection.ensure_index('symbol') # for sorting.
         self._get_prices = gets_prices
         
     def get(self, symbols, dates):
@@ -219,5 +222,19 @@ class IntegrationTests(unittest.TestCase):
         
         
 if __name__ == '__main__':
+    from financial_fundamentals.indicies import CLEANED_S_P_500_TICKERS
+    import time
     cache = MongoPriceCache()
-    print list(cache.get(symbols={'GOOG'}, dates=[(datetime.datetime(2012, 12, 1) + datetime.timedelta(days=1 * n)) for n in range(30)]))
+    success = False
+    dates = []
+    d = datetime.datetime(2010, 1, 1)
+    while d < datetime.datetime.today():
+        dates.append(d)
+        d = d + datetime.timedelta(days=1)
+    
+    while not success:
+        try:
+            success = list(cache.get(symbols=CLEANED_S_P_500_TICKERS, dates=dates))
+        except Exception as e:
+            print e
+            time.sleep(30)
