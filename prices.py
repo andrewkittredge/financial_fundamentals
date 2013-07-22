@@ -8,12 +8,16 @@ Created on Jul 2, 2013
 from pymongo import MongoClient
 
 from itertools import groupby
+import datetime
+from zipline.utils.tradingcalendar import get_trading_days
+import pytz
 
 mongohost, mongoport = 'localhost', 27017
 
 from pandas.io.data import get_data_yahoo
 import numpy as np
 import pymongo
+import pandas as pd
     
 def get_prices_from_yahoo(symbol, start, end):
     '''Jack Diedrich told me to make this a function rather than a class.'''
@@ -46,6 +50,7 @@ class MongoPriceCache(object):
             for price in prices:
                 price['price'] = np.float(price['price'])
             cached_dates = set(price['date'] for price in prices)
+            #TODO implement partial date getting.
             if necessary_dates.issubset(cached_dates):
                 symbols_to_get.remove(cached_symbol)
                 yield cached_symbol, prices
@@ -54,9 +59,31 @@ class MongoPriceCache(object):
             yield symbol, self._get_set(symbol=symbol, dates=dates)
 
 
-    def get_dataframe(self):
+    def get_dataframe(self, 
+                      indexes={}, 
+                      stocks=[],
+                      start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc), 
+                      end=datetime.datetime.today(),
+                      adjusted=True):
+        '''A replacement for the zipline.utils.factory.load_from_yahoo
+        
+        '''
+        symbols_to_get = list(stocks)
+        for name, ticker in indexes.iteritems():
+            symbols_to_get.append(ticker)
+            # TODO Figure out how indexes will work here.
+        
+        dates = get_trading_days(start=start, end=end)
+        data = self.get(symbols=symbols_to_get, 
+                        dates=dates)
+        close_key = 'Adj Close' if adjusted else 'Close'
+        df = pd.DataFrame({symbol : pd.Series({price['date'] : price['price'] 
+                                               for price in prices}) 
+                           for symbol, prices in data})
+        return df
+        
         #get the range and convert it into a dataframe.
-        pass
+        
 
     def _get_set(self, symbol, dates):
         start_date, end_date = min(dates), max(dates)
@@ -81,7 +108,6 @@ class MongoPriceCache(object):
             self._collection.update(key, data, upsert=True)
 
 import unittest
-import datetime
 import mock
 TEST_DB_HOST, TEST_DB_PORT = 'localhost', 27017
 class MongoPriceCacheTestCase(unittest.TestCase):
@@ -220,6 +246,30 @@ class IntegrationTests(unittest.TestCase):
         list(self.cache.get(symbols={symbol}, dates=dates))
         self.assertFalse(mock_getter.called)
         
+class TestGetDataFrame(MongoPriceCacheTestCase):
+    def test_get_dataframe(self):
+        mock_getter = mock.Mock()
+        mock_getter.return_value = iter([('ABC', [{'date' : datetime.datetime(2012, 12, 1),
+                                                   'price' : 6.},
+                                                  {'date' : datetime.datetime(2012, 12, 2),
+                                                   'price' : 6.5},
+                                                  ],
+                                          ),
+                                         ('XYZ', [{'date' : datetime.datetime(2012, 12, 1),
+                                                   'price' : 60.},
+                                                  {'date' : datetime.datetime(2012, 12, 2),
+                                                   'price' : 65.},
+                                                  ]
+                                          ),
+                                         ])
+        correct_df = pd.DataFrame(data={'ABC' : [6., 6.5], 'XYZ' : [60., 65.]}, 
+                                         index=[datetime.datetime(2012, 12, 1), 
+                                                datetime.datetime(2012, 12, 2)])
+        self.cache.get = mock_getter
+        df = self.cache.get_dataframe(stocks={'ABC', 'XYZ'},
+                                             start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC),
+                                             end=datetime.datetime(2012, 12, 2, tzinfo=pytz.UTC))
+        self.assertListEqual(list(df.T.itertuples()), list(correct_df.T.itertuples()))
         
 if __name__ == '__main__':
     from financial_fundamentals.indicies import CLEANED_S_P_500_TICKERS
