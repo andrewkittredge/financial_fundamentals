@@ -84,3 +84,4 @@ CLEANED_S_P_500_TICKERS = [ticker for ticker in S_P_500_TICKERS if '.' not in ti
 CLEANED_S_P_500_TICKERS.remove('PPL') # edgar doesn't know about PPL
 CLEANED_S_P_500_TICKERS.remove('ABBV') # no filings as of 2013-4-6
 CLEANED_S_P_500_TICKERS.remove('ZION') # Edgar doesn't know about these guys
+CLEANED_S_P_500_TICKERS.remove('MHP') # Or these people.
