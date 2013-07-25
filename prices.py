@@ -49,6 +49,7 @@ class MongoPriceCache(object):
             prices = list(prices)
             for price in prices:
                 price['price'] = np.float(price['price'])
+                price['date'] = price['date'].replace(tzinfo=pytz.UTC)
             cached_dates = set(price['date'] for price in prices)
             #TODO implement partial date getting.
             if necessary_dates.issubset(cached_dates):
@@ -62,8 +63,8 @@ class MongoPriceCache(object):
     def get_dataframe(self, 
                       indexes={}, 
                       stocks=[],
-                      start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc), 
-                      end=datetime.datetime.today(),
+                      start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.UTC), 
+                      end=datetime.datetime.now(pytz.UTC),
                       adjusted=True):
         '''A replacement for the zipline.utils.factory.load_from_yahoo
         
@@ -73,8 +74,8 @@ class MongoPriceCache(object):
             symbols_to_get.append(ticker)
             # TODO Figure out how indexes will work here.
         
-        dates = get_trading_days(start=start, end=end)
-        data = self.get(symbols=symbols_to_get, 
+        dates = list(get_trading_days(start=start, end=end))
+        data = self.get(symbols=symbols_to_get,
                         dates=dates)
         close_key = 'Adj Close' if adjusted else 'Close'
         df = pd.DataFrame({symbol : pd.Series({price['date'] : price['price'] 
@@ -149,7 +150,7 @@ class MongoPriceCacheTestCase(unittest.TestCase):
     def test_get_cache_hit(self):
         symbol = 'ABC'
         price = 6.
-        dates = [datetime.datetime(2013, 1, d) for d in [1, 2, 3]]
+        dates = [datetime.datetime(2013, 1, d, tzinfo=pytz.UTC) for d in [1, 2, 3]]
         for date in dates:
             self.collection.insert({'date' : date, 
                                     'symbol' : symbol, 
@@ -231,7 +232,7 @@ class IntegrationTests(unittest.TestCase):
         self.db.drop_collection(self.collection)
     def test_the_whole_thing(self):
         symbol = 'GOOG'
-        dates = [(datetime.datetime(2012, 12, 1) + \
+        dates = [(datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC) + \
                                     datetime.timedelta(days=1 * n)) 
                                    for n in range(30)]
         cached_values = self.cache.get(symbols={symbol}, 
@@ -263,8 +264,8 @@ class TestGetDataFrame(MongoPriceCacheTestCase):
                                           ),
                                          ])
         correct_df = pd.DataFrame(data={'ABC' : [6., 6.5], 'XYZ' : [60., 65.]}, 
-                                         index=[datetime.datetime(2012, 12, 1), 
-                                                datetime.datetime(2012, 12, 2)])
+                                         index=[datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
+                                                datetime.datetime(2012, 12, 2, tzinfo=pytz.UTC)])
         self.cache.get = mock_getter
         df = self.cache.get_dataframe(stocks={'ABC', 'XYZ'},
                                              start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC),
