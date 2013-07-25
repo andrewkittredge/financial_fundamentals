@@ -24,10 +24,11 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
+DEFAULT_DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 
+                               'multiples.db')
 
 class SQLLiteMultiplesCache(object):
-    
-    def __init__(self, db_path='multiples.db', table='multiples'):
+    def __init__(self, db_path=DEFAULT_DB_PATH, table='multiples'):
         self.table = table
         self.connection = sqlite3.connect(db_path)
         
