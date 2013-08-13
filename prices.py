@@ -11,6 +11,7 @@ from itertools import groupby
 import datetime
 from zipline.utils.tradingcalendar import get_trading_days
 import pytz
+from financial_fundamentals.time_series_cache import FinancialDataTimeSeriesCache
 
 mongohost, mongoport = 'localhost', 27017
 
@@ -18,7 +19,7 @@ from pandas.io.data import get_data_yahoo
 import numpy as np
 import pymongo
 import pandas as pd
-    
+
 def get_prices_from_yahoo(symbol, start, end):
     '''Jack Diedrich told me to make this a function rather than a class.'''
     prices = get_data_yahoo(name=symbol, start=start, end=end)
@@ -26,7 +27,9 @@ def get_prices_from_yahoo(symbol, start, end):
         yield {'date' : price[0],
                'price' : np.float(price[1]['Close'])}
 
-class MongoPriceCache(object):
+
+        
+class MongoPriceCache(FinancialDataTimeSeriesCache):
     '''The beginning of timeseries database.'''
     _client = MongoClient(mongohost, mongoport)
     _collection = _client.prices.prices

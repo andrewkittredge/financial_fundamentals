@@ -52,10 +52,9 @@ class MongoTimeseries(object):
         
         
 class MongoIntervalseries(MongoTimeseries):
-    def __init__(self, mongo_collection, metric, gets_sets): 
-        super(MongoIntervalseries, self).__init__(mongo_collection=mongo_collection,
+    def __init__(self, collection, metric): 
+        super(MongoIntervalseries, self).__init__(mongo_collection=collection,
                                                   metric=metric)
-        self._get_set = gets_sets
     
     @classmethod
     def _ensure_indexes(cls, collection):
@@ -63,24 +62,28 @@ class MongoIntervalseries(MongoTimeseries):
                                  ('end', pymongo.ASCENDING),
                                  ('symbol', pymongo.ASCENDING)])
         
-    def get(self, symbols, dates):
-        for symbol in symbols:
-            for date in dates:
-                cursor = self._collection.find({'symbol' : symbol,
-                                                'start' : {'$lte' : date},
-                                                'end' : {'$gte' : date}})
-                try:
-                    record = cursor.next()
-                except StopIteration:
-                    yield self._beautify_record(self._get_set(symbol, date), 
-                                                self._metric)
-                else:
-                    # Might be able to do this in the find.
-                    record['date'] = date
-                    record.pop('start')
-                    record.pop('end')
-                    yield self._beautify_record(record, self._metric)
+    def get(self, symbol, date):
+        cursor = self._collection.find({'symbol' : symbol,
+                                        'start' : {'$lte' : date},
+                                        'end' : {'$gte' : date}})
+        try:
+            record = cursor.next()
+        except StopIteration:
+            return None
+        else:
+            # Might be able to get mongo to do this.
+            record['date'] = date
+            record.pop('start')
+            record.pop('end')
+            return self._beautify_record(record, self._metric)
                     
+    def set_interval(self, symbol, start, end, value):
+        data = {'symbol' : symbol,
+                'start' : start,
+                'end' : end,
+                self._metric : value}
+        self._collection.insert(data)
+
 
 import unittest
 class MongoTestCase(unittest.TestCase):
@@ -89,26 +92,24 @@ class MongoTestCase(unittest.TestCase):
         client = pymongo.MongoClient('localhost', 27017)
         self.db = client.test_database
         self.collection = self.db.prices
-        
+
     def tearDown(self):
         self.collection.drop()
-        
+
 import mock
 import datetime
 class MongoIntervalseriesTestCase(MongoTestCase):
+    metric = 'EPS'
     def setUp(self):
         super(MongoIntervalseriesTestCase, self).setUp()
-        self.mock_getter_setter = mock.MagicMock()
         self.cache = MongoIntervalseries(self.collection, 
-                                         self.metric,
-                                         self.mock_getter_setter)
-        
+                                         self.metric)
+
     def test_cache_miss(self):
         symbol = 'ABC'
         date = datetime.datetime(2012, 12, 1)
-        list(self.cache.get([symbol], [date]))
-        self.mock_getter_setter.assert_called_once_with(symbol, date)
-        
+        self.assertIsNone(self.cache.get(symbol, date))
+
     def test_cache_hit(self):
         symbol = 'ABC'
         interval_start = datetime.datetime(2012, 12, 1)
@@ -120,10 +121,24 @@ class MongoIntervalseriesTestCase(MongoTestCase):
                 self.metric : price}
         self.collection.insert(data)
         date = datetime.datetime(2012, 12, 14)
-        cached_record = self.cache.get(symbols=[symbol], dates=[date]).next()
+        cached_record = self.cache.get(symbol=symbol, date=date)
         self.assertEqual(cached_record[self.metric], np.float(price))
         self.assertEqual(cached_record['date'], date.replace(tzinfo=pytz.UTC))
-        self.mock_getter_setter.assert_not_called()
+
+    def test_set_interval(self):
+        symbol = 'ABC'
+        interval_start = datetime.datetime(2012, 12, 1)
+        interval_end = datetime.datetime(2012, 12, 31)
+        price = 100.
+        self.cache.set_interval(symbol=symbol, 
+                                start=interval_start, 
+                                end=interval_end, 
+                                value=price)
+        db_record = self.collection.find({'start' : interval_start,
+                                          'end' : interval_end,
+                                          'symbol' : symbol}).next()
+        self.assertEqual(db_record[self.metric], np.float(price))
+        
         
 class MongoTimeSeriesTestCase(MongoTestCase):
     def setUp(self):
