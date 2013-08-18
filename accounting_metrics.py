@@ -16,8 +16,8 @@ def value_from_filing(filing, element_of_interest):
                                                 element_of_interest))
         if element_value:
             return float(element_value)
-    
-    
+
+
 class EPS(object):
     element_of_interest = 'EarningsPerShareDiluted'
     @classmethod
@@ -27,11 +27,10 @@ class EPS(object):
 class QuarterlyEPS(EPS):
     filing_type = '10-Q'
     metric_name = 'quarterly_eps'
-    
+
 class AnnualEPS(EPS):
     filing_type = '10-K'
 
-    
 class BookValuePerShare(object):
     shares_outstanding_element = 'WeightedAverageNumberOfSharesOutstandingBasic'
     @classmethod
