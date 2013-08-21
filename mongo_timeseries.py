@@ -96,7 +96,6 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         self.collection.drop()
 
-import mock
 import datetime
 class MongoIntervalseriesTestCase(MongoTestCase):
     metric = 'EPS'
