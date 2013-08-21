@@ -10,7 +10,7 @@ gaap_namespaces = ('http://fasb.org/us-gaap/2011-01-31',
                    'http://xbrl.us/us-gaap/2009-01-31',
                    'http://fasb.org/us-gaap/2012-01-31')
 
-def value_from_filing(filing, element_of_interest):
+def _value_from_filing(filing, element_of_interest):
     for gaap_namespace in gaap_namespaces:
         element_value = filing.findtext('{{{}}}{}'.format(gaap_namespace,
                                                 element_of_interest))
@@ -22,7 +22,7 @@ class EPS(object):
     element_of_interest = 'EarningsPerShareDiluted'
     @classmethod
     def value_from_filing(cls, filing):
-        return value_from_filing(filing, cls.element_of_interest)
+        return _value_from_filing(filing, cls.element_of_interest)
 
 class QuarterlyEPS(EPS):
     filing_type = '10-Q'
@@ -35,7 +35,7 @@ class BookValuePerShare(object):
     shares_outstanding_element = 'WeightedAverageNumberOfSharesOutstandingBasic'
     @classmethod
     def value_from_filing(cls, filing):
-        return cls._book_value(filing) / value_from_filing(filing, 
+        return cls._book_value(filing) / _value_from_filing(filing, 
                                                 cls.shares_outstanding_element)
     @classmethod
     def _book_value(cls, filing):
@@ -46,12 +46,12 @@ class BookValuePerShare(object):
     assets_element = 'Assets'
     @classmethod
     def _assets(cls, filing):
-        return value_from_filing(filing, cls.assets_element)
+        return _value_from_filing(filing, cls.assets_element)
     
     liabilities_element = 'Liabilities'    
     @classmethod
     def _liabilities(cls, filing):
-        return value_from_filing(filing, cls.liabilities_element)
+        return _value_from_filing(filing, cls.liabilities_element)
     
 class TestsXBRL(unittest.TestCase):
     test_filing_path = 'test_docs/aapl-20121229.xml'
