@@ -1,12 +1,42 @@
-
 import pymongo
-from financial_fundamentals.mongo_timeseries import MongoTimeseries
+from financial_fundamentals.mongo_timeseries import MongoIntervalseries,\
+    MongoTimeseries
+from financial_fundamentals.time_series_cache import FinancialDataRangesCache
+from financial_fundamentals.edgar import filing_before
 
 
 def mongo_fundamentals_cache(metric, mongo_host='localhost', mongo_port=27017):
     mongo_client = pymongo.MongoClient(mongo_host, mongo_port)
     mongo_collection = mongo_client.fundamentals.fundamentals
-    db = MongoTimeseries(mongo_collection=mongo_collection, 
-                         metric=metric)
-    
-    
+    db = MongoIntervalseries(collection=mongo_collection, 
+                         metric=metric.metric_name)
+    def get_data(symbol, date):
+        interval_start, filing_text, interval_end = filing_before(ticker=symbol,
+                                                                  filing_type=metric.filing_type,
+                                                                  date_after=date.date())
+        interval_start = datetime.datetime(interval_start.year, 
+                                           interval_start.month, 
+                                           interval_start.day)
+        interval_end = datetime.datetime(interval_end.year, 
+                                         interval_end.month, 
+                                         interval_end.day)
+        return interval_start, metric.value_from_filing(filing_text), interval_end
+
+    cache = FinancialDataRangesCache(gets_data=get_data, database=db)
+    return cache
+
+def mongo_price_cache(mongo_host='localhost', mongo_port=27017):
+    raise NotImplemented()
+    client = pymongo.MongoClient(mongo_host, mongo_port)
+    collection = client.prices.prices
+    db = MongoTimeseries(mongo_collection=collection, metric='price')
+   
+
+if __name__ == '__main__':
+    import requests_cache
+    requests_cache.configure('fundamentals_cache_test')
+    from financial_fundamentals.accounting_metrics import QuarterlyEPS
+    import datetime
+    cache = mongo_fundamentals_cache(QuarterlyEPS)
+    print cache.get(symbols=['GOOG'], dates=[datetime.datetime(2013, 1, 1)]).next()
+    print cache.get(symbols=['AAPL'], dates=[datetime.datetime(2013, 1, 1)]).next()
