@@ -10,19 +10,8 @@ def mongo_fundamentals_cache(metric, mongo_host='localhost', mongo_port=27017):
     mongo_collection = mongo_client.fundamentals.fundamentals
     db = MongoIntervalseries(collection=mongo_collection, 
                          metric=metric.metric_name)
-    def get_data(symbol, date):
-        interval_start, filing_text, interval_end = filing_before(ticker=symbol,
-                                                                  filing_type=metric.filing_type,
-                                                                  date_after=date.date())
-        interval_start = datetime.datetime(interval_start.year, 
-                                           interval_start.month, 
-                                           interval_start.day)
-        interval_end = datetime.datetime(interval_end.year, 
-                                         interval_end.month, 
-                                         interval_end.day)
-        return interval_start, metric.value_from_filing(filing_text), interval_end
 
-    cache = FinancialDataRangesCache(gets_data=get_data, database=db)
+    cache = FinancialDataRangesCache(gets_data=metric.get_data, database=db)
     return cache
 
 def mongo_price_cache(mongo_host='localhost', mongo_port=27017):
@@ -30,7 +19,7 @@ def mongo_price_cache(mongo_host='localhost', mongo_port=27017):
     client = pymongo.MongoClient(mongo_host, mongo_port)
     collection = client.prices.prices
     db = MongoTimeseries(mongo_collection=collection, metric='price')
-   
+    
 
 if __name__ == '__main__':
     import requests_cache

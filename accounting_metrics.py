@@ -4,6 +4,8 @@ Created on Jan 26, 2013
 @author: akittredge
 '''
 import unittest
+from financial_fundamentals.edgar import filing_before
+import datetime
 
 
 gaap_namespaces = ('http://fasb.org/us-gaap/2011-01-31',
@@ -23,6 +25,24 @@ class EPS(object):
     @classmethod
     def value_from_filing(cls, filing):
         return _value_from_filing(filing, cls.element_of_interest)
+    
+    @classmethod
+    def get_data(cls, symbol, data):
+        return _get_data(cls, symbol, data)
+    
+    
+def _get_data(metric, symbol, date):
+    interval_start, filing_text, interval_end = filing_before(ticker=symbol,
+                                                              filing_type=metric.filing_type,
+                                                              date_after=date.date())
+    interval_start = datetime.datetime(interval_start.year, 
+                                       interval_start.month, 
+                                       interval_start.day)
+    interval_end = datetime.datetime(interval_end.year, 
+                                     interval_end.month, 
+                                     interval_end.day)
+    return interval_start, metric.value_from_filing(filing_text), interval_end
+
 
 class QuarterlyEPS(EPS):
     filing_type = '10-Q'
