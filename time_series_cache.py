@@ -56,7 +56,7 @@ class FinancialDataRangesCache(object):
                     yield cached_value
 
     def _get_set(self, symbol, date):
-        start, end, value = self._get_data(symbol=symbol, date=date)
+        start, value, end = self._get_data(symbol=symbol, date=date)
         self._database.set_interval(symbol=symbol, start=start, end=end, value=value)
 
 import unittest
@@ -111,8 +111,8 @@ class MongoDateRangesIntegrationTestCase(MongoTestCase):
         date = datetime.datetime(2012, 12, 15)
         range_start, range_end = datetime.datetime(2012, 12, 1), datetime.datetime(2012, 12, 31)
         self.mock_getter.return_value = (range_start,
-                                         range_end,
-                                         price)
+                                         price,
+                                         range_end)
         value = self.cache.get(symbols=[symbol], dates=[date]).next()
         self.assertEqual(value['price'], price)
         self.assertEqual(value['date'], date.replace(tzinfo=pytz.UTC))
