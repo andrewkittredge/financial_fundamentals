@@ -14,6 +14,7 @@ import logging
 from urlparse import urljoin
 from collections import defaultdict
 from bisect import bisect_left
+from dateutil.relativedelta import relativedelta
 ticker_search_string = 'http://www.sec.gov/cgi-bin/browse-edgar?company=&match=&CIK={}&filenum=&State=&Country=&SIC=&owner=exclude&Find=Find+Companies&action=getcompany'
 
 logger = logging.getLogger('edgar')
@@ -43,7 +44,7 @@ def get_document_urls(symbol, filing_type):
 def find_urls_on_search_page(documents_urls, ticker, filing_type, filing_url_map):
     for documents_url in documents_urls:
         filing_page = BeautifulSoup(requests.get(documents_url).text)
-        period_of_report_elem = filing_page.find('div', text='Period of Report')
+        period_of_report_elem = filing_page.find('div', text='Filing Date')
         filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
         filing_date = date(*map(int, filing_date.split('-')))
         type_tds = filing_page.findAll('td', text='EX-101.INS')
@@ -68,24 +69,40 @@ def populate_filing_urls_map(ticker, filing_type, filing_url_map=FILING_URLS):
 class XBRLNotAvailable(Exception):
     pass
 
-
 def _filing_url_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
+    '''Return the url for the XBRL bracketed by the dates it was 'in effect.'
+    
+    '''
     if ticker not in filing_map:
         populate_filing_urls_map(ticker, filing_type, filing_map)
     filing_dates = sorted(key[1] for key in filing_map[ticker])
     if not filing_dates:
         raise XBRLNotAvailable('No {}s found for {}'.format(filing_type, ticker))
-    last_filing_before = filing_dates[bisect_left(filing_dates, date_after) - 1]
-    return filing_map[ticker][(filing_type, last_filing_before)]
+    filing_date_index = bisect_left(filing_dates, date_after) - 1
+    filing_date_before_date_requested = filing_dates[filing_date_index]
+    if filing_date_index < len(filing_dates):
+        filing_date_after_that = filing_dates[filing_date_index + 1]
+    else:
+        #Needless to say this is hack.  We could get the last non-xbrl filing date
+        # from edgar.
+        filing_date_after_that = filing_date_before_date_requested + relativedelta(months=3)
+        
+    return (filing_date_before_date_requested, 
+            filing_map[ticker][(filing_type, filing_date_before_date_requested)], 
+            filing_date_after_that)
 
-FILINGS_CACHE = {}
+FILINGS_CACHE = {} # TODO: Get rid of this global.
 def filing_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
     try:
-        filing_url = _filing_url_before(ticker, filing_type, date_after, filing_map)
+        interval_start, filing_url, interval_end = _filing_url_before(ticker, 
+                                                                      filing_type, 
+                                                                      date_after, 
+                                                                      filing_map)
     except XBRLNotAvailable:
         raise NoFilingFound('No filing found for ticker {}'.format(ticker))
-    return FILINGS_CACHE.setdefault(filing_url, 
-                                    ET.fromstring(requests.get(filing_url).text))
+    filing_text = FILINGS_CACHE.setdefault(filing_url, 
+                                           ET.fromstring(requests.get(filing_url).text))
+    return interval_start, filing_text, interval_end
 
 class NoFilingFound(Exception):
     pass
@@ -104,7 +121,7 @@ class TestsEdgar(unittest.TestCase):
         populate_filing_urls_map(ticker=ticker, 
                                  filing_type=filing_type, 
                                  filing_url_map=test_map)
-        self.assertEqual(test_map[ticker][(filing_type, date(2012, 12, 29))], 
+        self.assertEqual(test_map[ticker][(filing_type, date(2013, 1, 24))], 
                          'http://www.sec.gov/Archives/edgar/data/320193/000119312513022339/aapl-20121229.xml')
     
     def test_last_filing_before(self):
@@ -114,17 +131,21 @@ class TestsEdgar(unittest.TestCase):
         populate_filing_urls_map(ticker,
                                  filing_type=filing_type,
                                  filing_url_map=test_map)
-        date_after = date(2010, 7, 1)
+        date_after = date(2010, 7, 22)
         june_2010_filing_url = 'http://www.sec.gov/Archives/edgar/data/320193/000119312510162840/aapl-20100626.xml'
-        filing = _filing_url_before(ticker, filing_type, date_after, filing_map=test_map)
+        interval_start, filing, interval_end = _filing_url_before(ticker, filing_type, date_after, filing_map=test_map)
         self.assertEqual(filing, june_2010_filing_url)
+        self.assertEqual(interval_start, date(2010, 7, 21))
+        self.assertEqual(interval_end, date(2011, 1, 19))
 
     def test_mmm(self):
         '''This was getting a text file instead of xml.
         
         '''
-        filing_url = _filing_url_before(ticker='MMM', filing_type='10-Q',
-                          date_after=date(2010, 1, 04), filing_map=defaultdict(dict))
+        _, filing_url, _ = _filing_url_before(ticker='MMM', 
+                                              filing_type='10-Q',
+                                              date_after=date(2010, 1, 04), 
+                                              filing_map=defaultdict(dict))
         self.assertTrue(filing_url.endswith('.xml'))
         
     @mock.patch('requests.models.Response.text', new_callable=mock.PropertyMock)
