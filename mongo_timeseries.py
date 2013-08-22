@@ -87,7 +87,6 @@ class MongoIntervalseries(MongoTimeseries):
 
 import unittest
 class MongoTestCase(unittest.TestCase):
-    metric = 'price'
     def setUp(self):
         client = pymongo.MongoClient('localhost', 27017)
         self.db = client.test_database
@@ -140,6 +139,7 @@ class MongoIntervalseriesTestCase(MongoTestCase):
         
         
 class MongoTimeSeriesTestCase(MongoTestCase):
+    metric = 'price'
     def setUp(self):
         super(MongoTimeSeriesTestCase, self).setUp()
         self.cache = MongoTimeseries(self.collection, self.metric)
