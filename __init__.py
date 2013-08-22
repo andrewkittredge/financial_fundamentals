@@ -1,5 +1,5 @@
 import pymongo
-from financial_fundamentals.mongo_timeseries import MongoIntervalseries,\
+from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
     MongoTimeseries
 from financial_fundamentals.time_series_cache import FinancialDataRangesCache,\
     FinancialDataTimeSeriesCache

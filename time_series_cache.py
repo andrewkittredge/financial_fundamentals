@@ -4,7 +4,7 @@ Created on Jul 29, 2013
 @author: akittredge
 '''
 import itertools
-from financial_fundamentals.mongo_timeseries import MongoTestCase, MongoIntervalseries
+
 
 class FinancialDataTimeSeriesCache(object):
     def __init__(self, gets_data, database):
@@ -90,7 +90,8 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         self.mock_db.get.return_value = None
         self.date_range_cache.get(symbols=[symbol], dates=[date]).next()
         mock_get_set.assert_called_once_with(symbol=symbol, date=date)
-        
+
+from financial_fundamentals.mongo_drivers import MongoTestCase, MongoIntervalseries
 import pytz
 class MongoDateRangesIntegrationTestCase(MongoTestCase):
     metric = 'price'
