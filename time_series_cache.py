@@ -12,13 +12,13 @@ class FinancialDataTimeSeriesCache(object):
         self._database = database
         
     def get(self, symbols, dates):
-        cached_records = self._database.find(symbols, dates)
+        cached_records = self._database.get(symbols, dates)
         uncached_symbols = set(symbols)
         get_dates = set(dates)
         for cached_symbol, records in itertools.groupby(cached_records,
                                             key=lambda record : record['symbol']):
             records = list(records)
-            cached_dates = set(record['date'] for record in record)
+            cached_dates = set(record['date'] for record in records)
             missing_dates = get_dates - cached_dates
             if missing_dates:
                 new_records = self._get_set(symbol=cached_symbol, 
@@ -45,7 +45,7 @@ class FinancialDataRangesCache(object):
         for symbol in symbols:
             for date in dates:
                 # Not looking for more than one date at a time because the set
-                # operation will set multiple dates at a time.
+                # operation will set multiple dates per call.
                 cached_value = self._database.get(symbol=symbol, date=date)
                 if not cached_value:
                     self._get_set(symbol=symbol, date=date)
@@ -84,7 +84,6 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
     def test_cache_miss(self):
         symbol = 'ABC'
         date = datetime.datetime(2012, 12, 1)
-        value = 100.
         self.mock_db.get.return_value = None
         mock_get_set = mock.Mock()
         self.date_range_cache._get_set = mock_get_set
@@ -94,6 +93,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         
 import pytz
 class MongoDateRangesIntegrationTestCase(MongoTestCase):
+    metric = 'price'
     def setUp(self):
         super(MongoDateRangesIntegrationTestCase, self).setUp()
         self.mock_getter = mock.Mock()
