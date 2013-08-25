@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='financial_fundamentals',
       version='1',
@@ -6,6 +6,7 @@ setup(name='financial_fundamentals',
       author='Andrew Kittredge',
       author_email='andrewlkittredge@gmail.com',
       license='Apache 2.0',
+      packages=find_packages(),
       classifiers=[
 	'Development Status :: 4 - Beta',
 	'License :: OSI Approved :: Apache Software License',
@@ -20,7 +21,7 @@ setup(name='financial_fundamentals',
 	'numpy',
 	'pytz',
 	'requests_cache',
-	'request',
+	'requests',
 	'BeautifulSoup',
 	'pymongo',
 	'mock',
