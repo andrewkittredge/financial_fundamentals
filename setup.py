@@ -19,7 +19,7 @@ setup(name='financial_fundamentals',
       install_requires=[
 	'numpy',
 	'pytz',
-	'request_cache',
+	'requests_cache',
 	'request',
 	'BeautifulSoup',
 	'pymongo',
