@@ -144,7 +144,7 @@ class MongoTimeSeriesTestCase(MongoTestCase):
         super(MongoTimeSeriesTestCase, self).setUp()
         self.cache = MongoTimeseries(self.collection, self.metric)
         
-    def test_find(self):
+    def test_get(self):
         metric = self.metric
         symbol, date, price = ('ABC', 
                                datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
