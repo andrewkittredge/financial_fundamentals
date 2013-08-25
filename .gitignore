@@ -10,3 +10,5 @@ local_settings.py
 .settings
 *.db
 *.ipynb
+dist
+financial_fundamentals.egg-info
