@@ -11,30 +11,24 @@ class FinancialDataTimeSeriesCache(object):
         self._get_data = gets_data
         self._database = database
         
-    def get(self, symbols, dates):
-        cached_records = self._database.get(symbols, dates)
-        uncached_symbols = set(symbols)
-        get_dates = set(dates)
-        for cached_symbol, records in itertools.groupby(cached_records,
-                                            key=lambda record : record['symbol']):
-            records = list(records)
-            cached_dates = set(record['date'] for record in records)
-            missing_dates = get_dates - cached_dates
-            if missing_dates:
-                new_records = self._get_set(symbol=cached_symbol, 
-                                            dates=missing_dates)
-                records = itertools.chain(records, new_records)
-            yield cached_symbol, records
-            uncached_symbols.remove(cached_symbol)
-                
-        for symbol in uncached_symbols:
-            yield symbol, self._get_set(symbol, dates)
+    def get(self, symbol, dates):
+        '''yield date, data pairs in no particular order.
+        dates is a list of UTC datetimes.
+        
+        '''
+        cached_values = list(self._database.get(symbol=symbol, dates=dates))
+        missing_dates = set(dates)
+        for date, value in cached_values:
+            missing_dates.remove(date)
+            yield date, value
+        if missing_dates:
+            for date, value in self._get_set(symbol, dates=missing_dates):
+                yield date, value
 
     def _get_set(self, symbol, dates):
         new_records = list(self._get_data(symbol, dates))
         self._database.set(symbol, new_records)
         return new_records
-
 
 class FinancialDataRangesCache(object):
     def __init__(self, gets_data, database):

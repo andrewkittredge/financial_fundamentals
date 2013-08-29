@@ -8,7 +8,6 @@ import numpy as np
 import dateutil.parser
 import random
 from financial_fundamentals.indicies import S_P_500_TICKERS
-from zipline.utils.tradingcalendar_lse import trading_days
 from zipline.utils.tradingcalendar import get_trading_days
 
 class SQLiteTimeseries(object):
@@ -17,50 +16,53 @@ class SQLiteTimeseries(object):
         self._connection = connection
         self._table = table
         self._metric = metric
+        self._ensure_table_exists(connection, table)
+        
+    @classmethod
+    def _ensure_table_exists(cls, connection, table):
+        cursor = connection.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row['name'] for row in cursor.fetchall()]
+        if table not in tables:
+            cls.create_table(connection, table)
         
     get_query = '''SELECT value, symbol, metric, date from {} 
-                    WHERE symbol IN ({})
+                    WHERE symbol = ?
                     AND date in ({})
                     AND metric =  ?
                 '''
-    def get(self, symbols, dates):
+    def get(self, symbol, dates):
         '''return metric values for symbols and dates.'''
         with self._connection:
-            
-            
             qry = self.get_query.format(self._table, 
-                                        ','.join('?' * len(symbols)),
                                         ','.join('?' * len(dates)),
                                         )
             cursor = self._connection.cursor()
-            args = symbols + dates + [self._metric]
+            args = [symbol] + dates + [self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
-                yield self._beautify_record(record=row, metric=self._metric)
+                yield self._beautify_record(record=row)
        
     insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
     def set(self, symbol, records):
         with self._connection:
-            for record in records:
-                args = (symbol, record['date'], self._metric, record[self._metric])
+            for date, value in records:
+                args = (symbol, date, self._metric, value)
                 self._connection.execute(self.insert_query.format(self._table), args)
         
     create_stm = 'CREATE TABLE {:s} (date timestamp, symbol text, metric text, value real)'
     @classmethod
-    def create_table(cls, connection, table, metric):
+    def create_table(cls, connection, table):
         with connection:
-            connection.execute(cls.create_stm.format(table, metric))
+            connection.execute(cls.create_stm.format(table))
             
     @staticmethod
-    def _beautify_record(record, metric):
+    def _beautify_record(record):
         '''Cast metric to np.float and make date tz-aware.
         
         '''
-        record = dict(record)
-        record[metric] = np.float(record.pop('value'))
-        date = dateutil.parser.parse(record['date'])
-        record['date'] = date.replace(tzinfo=pytz.UTC)
-        return record
+        return (dateutil.parser.parse(record['date']).replace(tzinfo=pytz.UTC), 
+                    np.float(record['value']))
         
 class SQLiteIntervalseries(object):
     def get(self, symbol, date):
@@ -78,9 +80,6 @@ class SQLiteTimeseriesTestCase(unittest.TestCase):
     metric = 'Adj Close'
     def setUp(self):
         self.connection = sqlite3.connect(':memory:')
-        SQLiteTimeseries.create_table(connection=self.connection, 
-                                      table=self.table, 
-                                      metric='Adj Close')
         self.driver = SQLiteTimeseries(connection=self.connection, 
                                        table=self.table, 
                                        metric=self.metric)
