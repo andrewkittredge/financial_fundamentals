@@ -27,19 +27,16 @@ def mongo_price_cache(mongo_host='localhost', mongo_port=27017):
     cache = FinancialDataTimeSeriesCache(gets_data=get_prices_from_yahoo, 
                                          database=db)
     return cache
+
 DEFAULT_PRICE_PATH = os.path.join(os.path.expanduser('~'), 'prices')
 def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
     '''Return a cache that persists prices downloaded from yahoo.
     
     '''
-    connection = sqlite3.connect(db_file_path)
-    driver = SQLiteTimeseries(connection=connection, 
-                              table='prices', 
-                              metric='Adj Close')
-    cache = FinancialDataTimeSeriesCache(gets_data=get_prices_from_yahoo,
-                                         database=driver)
-    return cache
-
+    return FinancialDataTimeSeriesCache.build_sqlite_cache(sqlite_file_path=db_file_path, 
+                                                           table='prices', 
+                                                           metric='Adj Close')
+    
 import unittest
 class InitMethodTests(unittest.TestCase):
     @classmethod
@@ -51,8 +48,8 @@ class InitMethodTests(unittest.TestCase):
         import datetime
         cache = sqlite_price_cache(db_file_path=':memory:')
         prices = list(cache.get(symbol='GOOG', 
-                           dates=[datetime.datetime(2013, 8, 1),
-                                  datetime.datetime(2013, 8, 28)]))
+                                dates=[datetime.datetime(2013, 8, 1),
+                                       datetime.datetime(2013, 8, 28)]))
         date_prices = {date : value for date, value in prices}
         self.assertAlmostEqual(date_prices[datetime.datetime(2013, 8, 12, tzinfo=pytz.UTC)], 
                                885.51, delta=.1)
