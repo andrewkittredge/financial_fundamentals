@@ -20,19 +20,19 @@ class MongoTimeseries(object):
                                  ('symbol', pymongo.ASCENDING)])
         collection.ensure_index('symbol')
         
-    def get(self, symbols, dates):
-        records = self._collection.find({'symbol' : {'$in' : list(symbols)},
-                                     'date' : {'$in' : dates},
-                                     }).sort('symbol')
+    def get(self, symbol, dates):
+        records = self._collection.find({'symbol' : symbol,
+                                         'date' : {'$in' : dates},
+                                         }).sort('symbol')
         for record in records:
             yield self._beautify_record(record, self._metric)
         
     def set(self, symbol, records):
-        for record in records:
-            key = {'symbol' : symbol, 'date' : record['date']}
+        for date, value in records:
+            key = {'symbol' : symbol, 'date' : date}
             data = {'symbol' : symbol,
-                    self._metric : record[self._metric],
-                    'date' : record['date']}
+                    self._metric : value,
+                    'date' : date}
             self._collection.update(key, data, upsert=True)
 
     @classmethod
@@ -46,9 +46,8 @@ class MongoTimeseries(object):
         '''Cast metric to np.float and make date tz-aware.
         
         '''
-        record[metric] = np.float(record[metric])
-        record['date'] = record['date'].replace(tzinfo=pytz.UTC)
-        return record
+
+        return record['date'].replace(tzinfo=pytz.UTC), np.float(record[metric])
         
         
 class MongoIntervalseries(MongoTimeseries):
@@ -84,11 +83,20 @@ class MongoIntervalseries(MongoTimeseries):
                 self._metric : value}
         self._collection.insert(data)
 
+    @staticmethod
+    def _beautify_record(record, metric):
+        '''Cast metric to np.float and make date tz-aware.
+        
+        '''
+        record[metric] = np.float(record[metric])
+        record['date'] = record['date'].replace(tzinfo=pytz.UTC)
+        return record
 
 import unittest
 class MongoTestCase(unittest.TestCase):
+    host, port = 'localhost', 27017
     def setUp(self):
-        client = pymongo.MongoClient('localhost', 27017)
+        client = pymongo.MongoClient(self.host, self.port)
         self.db = client.test_database
         self.collection = self.db.prices
 
@@ -154,20 +162,17 @@ class MongoTimeSeriesTestCase(MongoTestCase):
                 metric : price,
                 'date' : date}
         self.collection.update(key, data, upsert=True)
-        test_data = self.cache.get(symbols=[symbol], dates=[date]).next()
-        self.assertEqual(test_data[metric], price)
-        self.assertEqual(test_data['date'], date.replace(tzinfo=pytz.UTC))
-        self.assertEqual(test_data['symbol'], symbol)
+        cache_date, cache_price = self.cache.get(symbol=symbol, dates=[date]).next()
+        self.assertEqual(cache_price, price)
+        self.assertEqual(cache_date, date)
+        
         
     def test_set(self):
         metric = self.metric
         symbol, date, price = ('ABC',
                                 datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
                                 6.5)
-        data = {'symbol' : symbol,
-                metric : price,
-                'date' : date}
-        self.cache.set(symbol=symbol, records=[data])
+        self.cache.set(symbol=symbol, records=[(date, price)])
         test_data = self.collection.find({'symbol' : symbol})[0]
         self.assertEqual(test_data[metric], price)
         self.assertEqual(test_data['symbol'], symbol)
