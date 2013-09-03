@@ -11,6 +11,7 @@ import datetime
 from financial_fundamentals import prices
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import sqlite3
+from financial_fundamentals.mongo_drivers import MongoTimeseries
 
 class FinancialDataTimeSeriesCache(object):
     def __init__(self, gets_data, database):
@@ -58,7 +59,10 @@ class FinancialDataTimeSeriesCache(object):
         return new_records
     
     @classmethod
-    def build_sqlite_cache(cls, sqlite_file_path, table, metric):
+    def build_sqlite_price_cache(cls, 
+                                 sqlite_file_path, 
+                                 table='prices', 
+                                 metric='Adj Close'):
         connection = sqlite3.connect(sqlite_file_path)
         db = SQLiteTimeseries(connection=connection, 
                               table=table, 
@@ -67,7 +71,13 @@ class FinancialDataTimeSeriesCache(object):
                     database=db)
         return cache
     
-    
+    @classmethod
+    def build_mongo_price_cache(cls,
+                                mongo_host='localhost', 
+                                mongo_port=27017):
+        mongo_driver = MongoTimeseries.price_db(host=mongo_host, port=mongo_port)
+        cache = cls(gets_data=prices.get_prices_from_yahoo, database=mongo_driver)
+        return cache
 
 class FinancialDataRangesCache(object):
     def __init__(self, gets_data, database):
@@ -93,7 +103,12 @@ class FinancialDataRangesCache(object):
         self._database.set_interval(symbol=symbol, start=start, end=end, value=value)
 
 import unittest
-class FinancialDataTimeSeriesCacheTestCase(unittest.TestCase):
+from financial_fundamentals.mongo_drivers import MongoTestCase, MongoIntervalseries
+class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import requests_cache
+        requests_cache.configure('fundamentals_cache_test')
     def test_load_from_cache(self):
         cache = FinancialDataTimeSeriesCache(gets_data=None, database=None)
         test_date, test_price = datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC), 100
@@ -109,11 +124,7 @@ class FinancialDataTimeSeriesCacheTestCase(unittest.TestCase):
         self.assertIn(symbol, df.keys())
         self.assertEqual(df[symbol][test_date], test_price)
         
-    def test_load_from_sqlite_cache_yahoo(self):
-        cache = FinancialDataTimeSeriesCache.build_sqlite_cache(sqlite_file_path=':memory:', 
-                                                                table='price', 
-                                                                metric='Adj Close')
-            
+    def run_load_from_cache_yahoo(self, cache):
         symbol = 'GOOG'
         df = cache.load_from_cache(stocks=[symbol], 
                               start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
@@ -125,18 +136,40 @@ class FinancialDataTimeSeriesCacheTestCase(unittest.TestCase):
                                    start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC),
                                    end=datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC))
 
-    def test_load_from_sqlite_cache_multiple_tickers(self):
-        cache = FinancialDataTimeSeriesCache.build_sqlite_cache(sqlite_file_path=':memory:', 
-                                                                table='price', 
-                                                                metric='Adj Close')
+    def run_load_from_cache_multiple_tickers(self, cache):
+        cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
+                                                                      table='price', 
+                                                                      metric='Adj Close')
         symbols = ['GOOG', 'AAPL']  
         df = cache.load_from_cache(stocks=symbols,
                                    start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
                                    end=datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC))
         self.assertEqual(df['GOOG'][datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 695.25)
-        self.assertEqual(df['GOOG'][datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)], 522.16)
+        self.assertEqual(df['AAPL'][datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)], 522.16)
 
-
+    def test_sqlite(self):
+        cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
+                                                                      table='price', 
+                                                                      metric='Adj Close')
+        self.run_load_from_cache_yahoo(cache=cache)
+        cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
+                                                                       table='price', 
+                                                                       metric='Adj Close')
+        self.run_load_from_cache_multiple_tickers(cache=cache)
+    
+    def _build_mongo_cache(self):
+        db_driver = MongoTimeseries(mongo_collection=self.collection, 
+                                    metric='Adj Close')
+        cache = FinancialDataTimeSeriesCache(gets_data=prices.get_prices_from_yahoo,
+                                             database=db_driver)
+        return cache
+    
+    def test_mongo_single(self):
+        self.run_load_from_cache_yahoo(self._build_mongo_cache())
+    
+    def test_mongo_multiple(self):
+        self.run_load_from_cache_multiple_tickers(self._build_mongo_cache())
+        
 import mock
 class FinancialDataRangesCacheTestCase(unittest.TestCase):
     def setUp(self):
@@ -167,7 +200,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         self.date_range_cache.get(symbols=[symbol], dates=[date]).next()
         mock_get_set.assert_called_once_with(symbol=symbol, date=date)
 
-from financial_fundamentals.mongo_drivers import MongoTestCase, MongoIntervalseries
+
 class MongoDataRangesIntegrationTestCase(MongoTestCase):
     metric = 'price'
     def setUp(self):
@@ -195,4 +228,3 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
         self.assertEqual(self.collection.find({'start' : range_start,
                                                'end' : range_end,
                                                'symbol' : symbol}).next()['price'], price)
-        
