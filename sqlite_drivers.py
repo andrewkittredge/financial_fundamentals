@@ -45,6 +45,7 @@ class SQLiteTimeseries(object):
        
     insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
     def set(self, symbol, records):
+        '''records is a sequence of date, value items.'''
         with self._connection:
             for date, value in records:
                 args = (symbol, date, self._metric, value)
@@ -75,6 +76,7 @@ import unittest
 import datetime
 import pytz
 import sqlite3
+from collections import defaultdict
 class SQLiteTimeseriesTestCase(unittest.TestCase):
     table = 'price'
     metric = 'Adj Close'
@@ -90,19 +92,18 @@ class SQLiteTimeseriesTestCase(unittest.TestCase):
         price = 6.5
         self.connection.execute('INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'\
                                 .format(self.table), (symbol, date, self.metric, price))
-        cache_value = self.driver.get(symbols=[symbol], dates=[date]).next()
-        self.assertEqual(cache_value[self.metric], price)
-        self.assertEqual(cache_value['symbol'], symbol)
-        self.assertEqual(cache_value['date'], date.replace(tzinfo=pytz.UTC))
+        cache_date, cache_price = self.driver.get(symbol=symbol, dates=[date]).next()
+        self.assertEqual(cache_price, price)
+        self.assertEqual(cache_date, date)
         
     def insert_date_combos(self, symbol_date_combos):
-        price_dict = {}
+        test_vals = defaultdict(dict)
         for symbol, date in symbol_date_combos:
             price = random.randint(0, 1000)
-            price_dict[(symbol, date)] = price
             self.connection.execute('INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'\
                                     .format(self.table), (symbol, date, self.metric, price))
-        return price_dict
+            test_vals[symbol][date] = price
+        return test_vals
         
     def test_multiple_get(self):
         symbols = ['ABC', 'XYZ']
@@ -112,10 +113,11 @@ class SQLiteTimeseriesTestCase(unittest.TestCase):
                  ]
         symbol_date_combos = [(symbol, date) for symbol in symbols for date in dates]
         price_dict = self.insert_date_combos(symbol_date_combos)
-        cached_values = self.driver.get(symbols=symbols, dates=dates)
-        cache_dict = {(cache_val['symbol'], cache_val['date']) : cache_val[self.metric] 
-                      for cache_val in cached_values}
-        self.assertDictEqual(price_dict, cache_dict)
+        
+        for symbol in symbols:
+            cached_values = list(self.driver.get(symbol=symbol, dates=dates))
+            cache_dict = {date : price for date, price in cached_values}
+            self.assertDictEqual(price_dict[symbol], cache_dict)
         
     def test_date_query(self):
         '''assert we only get the dates we want.'''
@@ -127,32 +129,30 @@ class SQLiteTimeseriesTestCase(unittest.TestCase):
         symbol_date_combos = [(symbol, date) for symbol in symbols for date in dates]
         prices = self.insert_date_combos(symbol_date_combos)
         self.insert_date_combos([('ABC', datetime.datetime(2012, 12, 15))])
-        cached_values = self.driver.get(symbols=symbols, dates=dates)
-        cache_dict = {(cache_val['symbol'], cache_val['date']) : cache_val[self.metric] 
-                      for cache_val in cached_values}
-        self.assertDictEqual(prices, cache_dict)
+        for symbol in symbols:
+            cached_values = self.driver.get(symbol=symbol, dates=dates)
+            cache_dict = {date : price for date, price in cached_values}
+            self.assertDictEqual(prices[symbol], cache_dict)
         
     def test_volume(self):
+        '''make sure a larger number of records doesn't choke it somehow.'''
         symbols = S_P_500_TICKERS[:200]
         datetimeindex = get_trading_days(start=datetime.datetime(2012, 1, 1, tzinfo=pytz.UTC), 
-                                 end=datetime.datetime(2012, 7, 31, tzinfo=pytz.UTC))
+                                 end=datetime.datetime(2012, 7, 4, tzinfo=pytz.UTC))
         dates = [datetime.datetime(d.date().year, d.date().month, d.date().day).replace(tzinfo=pytz.UTC) 
                  for d in datetimeindex]
         symbol_date_combos = [(symbol, date) for symbol in symbols for date in dates]
-        prices = self.insert_date_combos(symbol_date_combos)
-        cached_values = self.driver.get(symbols=symbols, dates=dates)
-        cache_dict = {(cache_val['symbol'], cache_val['date']) : cache_val[self.metric] 
-                      for cache_val in cached_values}
-        self.assertDictEqual(prices, cache_dict)
+        test_vals = self.insert_date_combos(symbol_date_combos)
+        for symbol in symbols:
+            cached_values = self.driver.get(symbol=symbol, dates=dates)
+            cache_dict = {date : price for date, price in cached_values}    
+            self.assertDictEqual(test_vals[symbol], cache_dict)
         
     def test_set(self):
         symbol = 'ABC'
         date = datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
         price = 6.5
-        data = {'symbol' : symbol,
-                self.metric : price,
-                'date' : date,}
-        self.driver.set(symbol=symbol, records=[data])
+        self.driver.set(symbol=symbol, records=[(date, price)])
         qry = 'SELECT * FROM {}'.format(self.table)
         row = self.connection.execute(qry).fetchone()
         self.assertEqual(row['symbol'], symbol)
