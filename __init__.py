@@ -33,9 +33,9 @@ def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
     '''Return a cache that persists prices downloaded from yahoo.
     
     '''
-    return FinancialDataTimeSeriesCache.build_sqlite_cache(sqlite_file_path=db_file_path, 
-                                                           table='prices', 
-                                                           metric='Adj Close')
+    return FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=db_file_path, 
+                                                                 table='prices', 
+                                                                 metric='Adj Close')
     
 import unittest
 class InitMethodTests(unittest.TestCase):
