@@ -21,8 +21,7 @@ class FinancialDataTimeSeriesCache(object):
     def get(self, symbol, dates):
         '''yield date, data pairs in no particular order.
         dates is a list of UTC datetimes.
-        
-        dates is a list of datetimes.
+
         '''
         cached_values = self._database.get(symbol=symbol, dates=dates)
         missing_dates = set(dates)
@@ -34,8 +33,8 @@ class FinancialDataTimeSeriesCache(object):
                 yield date, value
                 
     def load_from_cache(self,
-                        indexes=None,
-                        stocks=None,
+                        indexes={},
+                        stocks=[],
                         start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
                         end=datetime.datetime.now().replace(tzinfo=pytz.utc),
                         adjusted=True):
@@ -51,6 +50,11 @@ class FinancialDataTimeSeriesCache(object):
                                                                dates=python_datetimes)}
             series = pd.Series(values)
             df[symbol] = series
+            
+        for name, ticker in indexes.iteritems():
+            values = {date : value for date, value in self.get(symbol=ticker, 
+                                                               dates=python_datetimes)}
+            df[name] = pd.Series(values)
         return df
             
     def _get_set(self, symbol, dates):
@@ -109,6 +113,7 @@ class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
     def setUpClass(cls):
         import requests_cache
         requests_cache.configure('fundamentals_cache_test')
+        
     def test_load_from_cache(self):
         cache = FinancialDataTimeSeriesCache(gets_data=None, database=None)
         test_date, test_price = datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC), 100
@@ -169,6 +174,15 @@ class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
     
     def test_mongo_multiple(self):
         self.run_load_from_cache_multiple_tickers(self._build_mongo_cache())
+        
+    def test_indexes(self):
+        cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
+                                                                      table='price', 
+                                                                      metric='Adj Close')
+        df = cache.load_from_cache(indexes={'SPX' : '^GSPC'},
+                                   start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC),
+                                   end=datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC))
+        self.assertEqual(df['SPX'][datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 1409.46)
         
 import mock
 class FinancialDataRangesCacheTestCase(unittest.TestCase):
