@@ -37,7 +37,7 @@ class FinancialDataTimeSeriesCache(object):
                         stocks=[],
                         start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
                         end=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                        adjusted=True):
+                        ):
         '''Equivalent to zipline.utils.factory.load_from_yahoo.
         
         '''
