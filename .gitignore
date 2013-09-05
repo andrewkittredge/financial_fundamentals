@@ -12,3 +12,4 @@ local_settings.py
 *.ipynb
 dist
 financial_fundamentals.egg-info
+build
