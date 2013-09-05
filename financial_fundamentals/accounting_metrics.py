@@ -8,6 +8,7 @@ from financial_fundamentals.edgar import filing_before
 import datetime
 
 
+
 gaap_namespaces = ('http://fasb.org/us-gaap/2011-01-31',
                    'http://xbrl.us/us-gaap/2009-01-31',
                    'http://fasb.org/us-gaap/2012-01-31')
@@ -73,8 +74,10 @@ class BookValuePerShare(object):
     def _liabilities(cls, filing):
         return _value_from_filing(filing, cls.liabilities_element)
     
+import os
 class TestsXBRL(unittest.TestCase):
-    test_filing_path = '../docs/test/aapl-20121229.xml'
+    from financial_fundamentals.test_infrastructure import TEST_DOCS_DIR
+    test_filing_path = os.path.join(TEST_DOCS_DIR, 'aapl-20121229.xml')
     asset_test_value = 196088000000.
     liabilities_test_value = 68742000000.
     book_value_per_share_test_value = 135.6 # from http://www.gurufocus.com/term/Book%20Value%20Per%20Share/AAPL/Book%252BValue%252Bper%252BShare/Apple%2BInc

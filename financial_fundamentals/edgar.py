@@ -15,6 +15,7 @@ from urlparse import urljoin
 from collections import defaultdict
 from bisect import bisect_left
 from dateutil.relativedelta import relativedelta
+
 ticker_search_string = 'http://www.sec.gov/cgi-bin/browse-edgar?company=&match=&CIK={}&filenum=&State=&Country=&SIC=&owner=exclude&Find=Find+Companies&action=getcompany'
 
 logger = logging.getLogger('edgar')
@@ -154,7 +155,9 @@ class TestsEdgar(unittest.TestCase):
         ABBV had just been spun off or something.
         
         '''
-        with open('../docs/test/abbv_search_results.html') as test_html:
+        import os
+        from financial_fundamentals.test_infrastructure import TEST_DOCS_DIR
+        with open(os.path.join(TEST_DOCS_DIR, 'abbv_search_results.html')) as test_html:
             text.return_value = test_html.read()
 
         ticker = 'ABBV'
