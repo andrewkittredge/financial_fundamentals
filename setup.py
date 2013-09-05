@@ -4,7 +4,7 @@ desc = '''\
 financial_fundamentals
 =========================
 :Author: Andrew Kittredge
-:Version: $Revision: 0.0.0
+:Version: $Revision: 0.1.0
 :Copyright: Andrew Kittredge
 :License: Apache Version 2
 
@@ -14,7 +14,7 @@ financial_fundamentals caches financial data to speed alogirithm development.  I
 
 '''
 setup(name='FinancialFundamentals',
-      version='1',
+      version='0.1.0',
       description='Caching for financial metrics.',
       long_description=desc,
       author='Andrew Kittredge',
