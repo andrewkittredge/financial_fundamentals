@@ -74,7 +74,7 @@ class BookValuePerShare(object):
         return _value_from_filing(filing, cls.liabilities_element)
     
 class TestsXBRL(unittest.TestCase):
-    test_filing_path = 'test_docs/aapl-20121229.xml'
+    test_filing_path = '../docs/test/aapl-20121229.xml'
     asset_test_value = 196088000000.
     liabilities_test_value = 68742000000.
     book_value_per_share_test_value = 135.6 # from http://www.gurufocus.com/term/Book%20Value%20Per%20Share/AAPL/Book%252BValue%252Bper%252BShare/Apple%2BInc

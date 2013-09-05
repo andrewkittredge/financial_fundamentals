@@ -13,6 +13,7 @@ from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import sqlite3
 from financial_fundamentals.mongo_drivers import MongoTimeseries
 
+
 class FinancialDataTimeSeriesCache(object):
     def __init__(self, gets_data, database):
         self._get_data = gets_data
@@ -111,8 +112,8 @@ from financial_fundamentals.mongo_drivers import MongoTestCase, MongoIntervalser
 class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import requests_cache
-        requests_cache.configure('fundamentals_cache_test')
+        from financial_fundamentals.test_infrastructure import turn_on_request_caching
+        turn_on_request_caching()
         
     def test_load_from_cache(self):
         cache = FinancialDataTimeSeriesCache(gets_data=None, database=None)

@@ -110,8 +110,8 @@ class NoFilingFound(Exception):
 import mock
 class TestsEdgar(unittest.TestCase):
     def setUp(self):
-        import requests_cache
-        requests_cache.configure('fundamentals_cache_test')
+        from financial_fundamentals.test_infrastructure import turn_on_request_caching
+        turn_on_request_caching()
 
         
     def test_populate_filing_url_map(self):
@@ -154,7 +154,7 @@ class TestsEdgar(unittest.TestCase):
         ABBV had just been spun off or something.
         
         '''
-        with open('test_docs/abbv_search_results.html') as test_html:
+        with open('../docs/test/abbv_search_results.html') as test_html:
             text.return_value = test_html.read()
 
         ticker = 'ABBV'

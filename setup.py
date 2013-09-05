@@ -13,7 +13,7 @@ financial_fundamentals caches financial data to speed alogirithm development.  I
 
 
 '''
-setup(name='financial_fundamentals',
+setup(name='FinancialFundamentals',
       version='1',
       description='Caching for financial metrics.',
       long_description=desc,

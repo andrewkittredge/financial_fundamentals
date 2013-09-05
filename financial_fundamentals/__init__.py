@@ -8,7 +8,7 @@ from financial_fundamentals.prices import get_prices_from_yahoo
 import pytz
 import sqlite3
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
-import financial_fundamentals
+
 import os
 
 
@@ -41,8 +41,8 @@ import unittest
 class InitMethodTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import requests_cache
-        requests_cache.configure('fundamentals_cache_test')
+        from financial_fundamentals.test_infrastructure import turn_on_request_caching
+        turn_on_request_caching()
 
     def test_sqlite_price_cache(self):
         import datetime
@@ -55,8 +55,8 @@ class InitMethodTests(unittest.TestCase):
                                885.51, delta=.1)
 
 if __name__ == '__main__':
-    import requests_cache
-    requests_cache.configure('fundamentals_cache_test')
+    from financial_fundamentals.test_infrastructure import turn_on_request_caching
+    turn_on_request_caching()
     from financial_fundamentals.accounting_metrics import QuarterlyEPS
     import datetime
     price_cache = mongo_price_cache()
