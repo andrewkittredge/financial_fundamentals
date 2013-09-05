@@ -13,3 +13,4 @@ local_settings.py
 dist
 financial_fundamentals.egg-info
 build
+*.egg-info
