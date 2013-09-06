@@ -103,6 +103,9 @@ class FinancialDataRangesCache(object):
                 else:
                     yield cached_value
 
+    def load_from_cache(self, stocks, start, end):
+        datetime_index = get_trading_days(start=start, end=end)
+    
     def _get_set(self, symbol, date):
         start, value, end = self._get_data(symbol=symbol, date=date)
         self._database.set_interval(symbol=symbol, start=start, end=end, value=value)

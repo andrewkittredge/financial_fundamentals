@@ -8,6 +8,7 @@ import pytz
 import numpy as np
 
 
+
 class MongoTimeseries(object):
     def __init__(self, mongo_collection, metric):
         self._ensure_indexes(mongo_collection)
@@ -103,48 +104,21 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         self.collection.drop()
 
-import datetime
-class MongoIntervalseriesTestCase(MongoTestCase):
-    metric = 'EPS'
+from financial_fundamentals.test_infrastructure import IntervalseriesTestCase
+class MongoIntervalSeriesTestCase(MongoTestCase, IntervalseriesTestCase):
     def setUp(self):
-        super(MongoIntervalseriesTestCase, self).setUp()
+        super(MongoIntervalSeriesTestCase, self).setUp()
         self.cache = MongoIntervalseries(self.collection, 
                                          self.metric)
-
-    def test_cache_miss(self):
-        symbol = 'ABC'
-        date = datetime.datetime(2012, 12, 1)
-        self.assertIsNone(self.cache.get(symbol, date))
-
-    def test_cache_hit(self):
-        symbol = 'ABC'
-        interval_start = datetime.datetime(2012, 12, 1)
-        interval_end = datetime.datetime(2012, 12, 31)
-        price = 100.
-        data = {'symbol' : symbol,
-                'start' : interval_start,
-                'end' : interval_end,
-                self.metric : price}
-        self.collection.insert(data)
-        date = datetime.datetime(2012, 12, 14)
-        cached_record = self.cache.get(symbol=symbol, date=date)
-        self.assertEqual(cached_record[self.metric], np.float(price))
-        self.assertEqual(cached_record['date'], date.replace(tzinfo=pytz.UTC))
-
-    def test_set_interval(self):
-        symbol = 'ABC'
-        interval_start = datetime.datetime(2012, 12, 1)
-        interval_end = datetime.datetime(2012, 12, 31)
-        price = 100.
-        self.cache.set_interval(symbol=symbol, 
-                                start=interval_start, 
-                                end=interval_end, 
-                                value=price)
-        db_record = self.collection.find({'start' : interval_start,
-                                          'end' : interval_end,
-                                          'symbol' : symbol}).next()
-        self.assertEqual(db_record[self.metric], np.float(price))
+    
+    def find_in_database(self, start, end, symbol):
+        db_record = self.collection.find({'start' : start,
+                              'end' : end,
+                              'symbol' : symbol}).next()
+        return db_record[self.metric]
         
+    def insert_into_database(self, data):
+        self.collection.insert(data)
         
 class MongoTimeSeriesTestCase(MongoTestCase):
     metric = 'price'
@@ -153,6 +127,7 @@ class MongoTimeSeriesTestCase(MongoTestCase):
         self.cache = MongoTimeseries(self.collection, self.metric)
         
     def test_get(self):
+        import datetime
         metric = self.metric
         symbol, date, price = ('ABC', 
                                datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
@@ -165,9 +140,9 @@ class MongoTimeSeriesTestCase(MongoTestCase):
         cache_date, cache_price = self.cache.get(symbol=symbol, dates=[date]).next()
         self.assertEqual(cache_price, price)
         self.assertEqual(cache_date, date)
-        
-        
+
     def test_set(self):
+        import datetime
         metric = self.metric
         symbol, date, price = ('ABC',
                                 datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
