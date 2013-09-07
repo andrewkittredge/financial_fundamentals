@@ -5,9 +5,12 @@ Caching for accounting metrics from XBRL downloaded from the SEC's Edgar.
 See the blog @ [http://andrewonfinance.blogspot.com/](http://andrewonfinance.blogspot.com/).
 
 
-
-    from datetime import date
-    from financial_fundamentals import fundamentals, accounting_metrics
-    fundamentals_cache = fundamentals.SQLLiteMultiplesCache()
-    fundamentals_cache.create_database()
-    print fundamentals_cache.get(ticker='GOOG', date_=date(2012, 12, 31), metric=accounting_metrics.QuarterlyEPS)
+	import pytz
+	import datetime
+	from financial_fundamentals import sqlite_fundamentals_cache as fundamentals_cache, sqlite_price_cache as price_cache
+	from financial_fundamentals.accounting_metrics import QuarterlyEPS
+	from financial_fundamentals.indicies import CLEANED_S_P_500_TICKERS
+	start, end = datetime.datetime(2013, 1, 1, tzinfo=pytz.UTC), datetime.datetime(2013, 8, 1, tzinfo=pytz.UTC)
+	eps_dataframe = fundamentals_cache(metric=QuarterlyEPS).load_from_cache(stocks=CLEANED_S_P_500_TICKERS, start=start, end=end)
+	price_dataframe = price_cache().load_from_cache(stocks=CLEANED_S_P_500_TICKERS, start=start, end=end)
+	price_to_earnings_dataframe = price_dataframe / eps_dataframe * 4
