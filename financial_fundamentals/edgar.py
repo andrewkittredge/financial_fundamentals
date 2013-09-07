@@ -46,7 +46,10 @@ def find_urls_on_search_page(documents_urls, ticker, filing_type, filing_url_map
     for documents_url in documents_urls:
         filing_page = BeautifulSoup(requests.get(documents_url).text)
         period_of_report_elem = filing_page.find('div', text='Filing Date')
-        filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
+        try:
+            filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
+        except AttributeError:
+            continue
         filing_date = date(*map(int, filing_date.split('-')))
         type_tds = filing_page.findAll('td', text='EX-101.INS')
         for type_td in type_tds:
@@ -72,6 +75,8 @@ class XBRLNotAvailable(Exception):
 
 def _filing_url_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
     '''Return the url for the XBRL bracketed by the dates it was 'in effect.'
+    We want the filing that was submitted before the date_after, what you would have been
+    trading based on.
     
     '''
     if ticker not in filing_map:
@@ -81,7 +86,7 @@ def _filing_url_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
         raise XBRLNotAvailable('No {}s found for {}'.format(filing_type, ticker))
     filing_date_index = bisect_left(filing_dates, date_after) - 1
     filing_date_before_date_requested = filing_dates[filing_date_index]
-    if filing_date_index < len(filing_dates):
+    if filing_date_index < len(filing_dates) - 1:
         filing_date_after_that = filing_dates[filing_date_index + 1]
     else:
         #Needless to say this is hack.  We could get the last non-xbrl filing date
