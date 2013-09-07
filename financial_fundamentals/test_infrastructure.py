@@ -38,9 +38,8 @@ class IntervalseriesTestCase(object):
                 self.metric : price}
         self.insert_into_database(data)
         date = datetime.datetime(2012, 12, 14, tzinfo=pytz.UTC)
-        cached_record = self.cache.get(symbol=symbol, date=date)
-        self.assertEqual(cached_record[self.metric], np.float(price))
-        self.assertEqual(cached_record['date'], date.replace(tzinfo=pytz.UTC))
+        cache_value = self.cache.get(symbol=symbol, date=date)
+        self.assertEqual(cache_value, np.float(price))
 
     def test_set_interval(self):
         symbol = 'ABC'

@@ -74,18 +74,21 @@ class SQLiteIntervalseries(SQLiteDriver):
     get_qry = 'SELECT value FROM {} WHERE metric = ? AND symbol = ? AND start <= ? AND ? <= end'
     def get(self, symbol, date):
         '''return the metric value of symbol on date.'''
-        row= self._connection.execute(self.get_qry.format(self._table), (self._metric,
-                                                                         symbol,
-                                                                         date,
-                                                                         date)).fetchone()
-        return row and {'date' : date, 
-                        self._metric : np.float(row['value'])} # The dict return is not consistent.
-        
+        qry = self.get_qry.format(self._table)
+        with self._connection:
+            row = self._connection.execute(qry, (self._metric,
+                                                 symbol,
+                                                 date,
+                                                 date)).fetchone()
+        return row and (np.float(row['value']) if row['value'] else np.NaN)
+
     insert_query = 'INSERT INTO {} (symbol, start, end, metric, value) VALUES (?, ?, ?, ?, ?)'
     def set_interval(self, symbol, start, end, value):
         '''set value for interval start and end.'''
         qry = self.insert_query.format(self._table)
-        self._connection.execute(qry, (symbol, start, end, self._metric, value))
+        with self._connection:
+            self._connection.execute(qry, (symbol, start, end, 
+                                           self._metric, value))
         
 import unittest
 import datetime

@@ -71,11 +71,7 @@ class MongoIntervalseries(MongoTimeseries):
         except StopIteration:
             return None
         else:
-            # Might be able to get mongo to do this.
-            record['date'] = date
-            record.pop('start')
-            record.pop('end')
-            return self._beautify_record(record, self._metric)
+            return np.float(record[self._metric])
                     
     def set_interval(self, symbol, start, end, value):
         data = {'symbol' : symbol,
@@ -84,14 +80,6 @@ class MongoIntervalseries(MongoTimeseries):
                 self._metric : value}
         self._collection.insert(data)
 
-    @staticmethod
-    def _beautify_record(record, metric):
-        '''Cast metric to np.float and make date tz-aware.
-        
-        '''
-        record[metric] = np.float(record[metric])
-        record['date'] = record['date'].replace(tzinfo=pytz.UTC)
-        return record
 
 import unittest
 class MongoTestCase(unittest.TestCase):

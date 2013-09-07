@@ -13,6 +13,30 @@ from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import sqlite3
 from financial_fundamentals.mongo_drivers import MongoTimeseries
 
+def _load_from_cache(cache,
+                    indexes={},
+                    stocks=[],
+                    start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
+                    end=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                    ):
+    '''Equivalent to zipline.utils.factory.load_from_yahoo.
+    
+    '''
+    datetime_index = get_trading_days(start=start, end=end)
+    df = pd.DataFrame(index=datetime_index)
+    python_datetimes = list(datetime_index.to_pydatetime())
+    for symbol in stocks:
+        # there's probably a clever way of avoiding building a dictionary.
+        values = {date : value for date, value in cache.get(symbol=symbol, 
+                                                           dates=python_datetimes)}
+        series = pd.Series(values)
+        df[symbol] = series
+        
+    for name, ticker in indexes.iteritems():
+        values = {date : value for date, value in cache.get(symbol=ticker, 
+                                                           dates=python_datetimes)}
+        df[name] = pd.Series(values)
+    return df
 
 class FinancialDataTimeSeriesCache(object):
     def __init__(self, gets_data, database):
@@ -32,31 +56,6 @@ class FinancialDataTimeSeriesCache(object):
         if missing_dates:
             for date, value in self._get_set(symbol, dates=missing_dates):
                 yield date, value
-                
-    def load_from_cache(self,
-                        indexes={},
-                        stocks=[],
-                        start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
-                        end=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                        ):
-        '''Equivalent to zipline.utils.factory.load_from_yahoo.
-        
-        '''
-        datetime_index = get_trading_days(start=start, end=end)
-        df = pd.DataFrame(index=datetime_index)
-        python_datetimes = list(datetime_index.to_pydatetime())
-        for symbol in stocks:
-            # there's probably a clever way of avoiding building a dictionary.
-            values = {date : value for date, value in self.get(symbol=symbol, 
-                                                               dates=python_datetimes)}
-            series = pd.Series(values)
-            df[symbol] = series
-            
-        for name, ticker in indexes.iteritems():
-            values = {date : value for date, value in self.get(symbol=ticker, 
-                                                               dates=python_datetimes)}
-            df[name] = pd.Series(values)
-        return df
             
     def _get_set(self, symbol, dates):
         new_records = list(self._get_data(symbol, dates))
@@ -84,31 +83,35 @@ class FinancialDataTimeSeriesCache(object):
         cache = cls(gets_data=prices.get_prices_from_yahoo, database=mongo_driver)
         return cache
 
+    load_from_cache = _load_from_cache
+    
+    
 class FinancialDataRangesCache(object):
     def __init__(self, gets_data, database):
         self._get_data = gets_data
         self._database = database
         
-    def get(self, symbols, dates):
-        for symbol in symbols:
-            for date in dates:
-                # Not looking for more than one date at a time because the set
-                # operation will set multiple dates per call.
-                cached_value = self._database.get(symbol=symbol, date=date)
-                if not cached_value:
-                    self._get_set(symbol=symbol, date=date)
-                    # Value will be in the database now.
-                    # Superfluous database call.
-                    yield self._database.get(symbol=symbol, date=date)
-                else:
-                    yield cached_value
-
-    def load_from_cache(self, stocks, start, end):
-        datetime_index = get_trading_days(start=start, end=end)
+    def get(self, symbol, dates):
+        '''Return cache's metric value for the passed dates.
+        
+        dates should be UTC.
+        '''
+        for date in dates:
+            # Not looking for more than one date at a time because the set
+            # operation will set multiple dates per call.
+            cached_value = self._database.get(symbol=symbol, date=date)
+            if cached_value:
+                yield date, cached_value
+            else:
+                yield date, self._get_set(symbol=symbol, date=date)
     
     def _get_set(self, symbol, date):
         start, value, end = self._get_data(symbol=symbol, date=date)
         self._database.set_interval(symbol=symbol, start=start, end=end, value=value)
+        return value
+
+    load_from_cache = _load_from_cache
+
 
 import unittest
 from financial_fundamentals.mongo_drivers import MongoTestCase, MongoIntervalseries
@@ -200,13 +203,11 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         symbol = 'ABC'
         date = datetime.datetime(2012, 12, 1)
         value = 100.
-        self.mock_db.get.return_value = {'date' : date,
-                                         'symbol' : symbol,
-                                         'EPS' : value}
-        cache_value = self.date_range_cache.get(symbols=[symbol], dates=[date]).next()
-        self.assertEqual(cache_value['EPS'], value)
-        self.assertEqual(cache_value['date'], date)
-        self.assertEqual(cache_value['symbol'], symbol)
+        self.mock_db.get.return_value = value
+        cache_date, cache_value = self.date_range_cache.get(symbol=symbol, dates=[date]).next()
+        self.assertEqual(cache_value, value)
+        self.assertEqual(cache_date, date)
+
         
     def test_cache_miss(self):
         symbol = 'ABC'
@@ -215,7 +216,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         mock_get_set = mock.Mock()
         self.date_range_cache._get_set = mock_get_set
         self.mock_db.get.return_value = None
-        self.date_range_cache.get(symbols=[symbol], dates=[date]).next()
+        self.date_range_cache.get(symbol=symbol, dates=[date]).next()
         mock_get_set.assert_called_once_with(symbol=symbol, date=date)
 
 
@@ -235,14 +236,14 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
     def test_set(self):
         price = 100.
         symbol = 'ABC'
-        date = datetime.datetime(2012, 12, 15)
+        date = datetime.datetime(2012, 12, 15, tzinfo=pytz.UTC)
         range_start, range_end = datetime.datetime(2012, 12, 1), datetime.datetime(2012, 12, 31)
         self.mock_getter.return_value = (range_start,
                                          price,
                                          range_end)
-        value = self.cache.get(symbols=[symbol], dates=[date]).next()
-        self.assertEqual(value['price'], price)
-        self.assertEqual(value['date'], date.replace(tzinfo=pytz.UTC))
+        cache_date, cache_price = self.cache.get(symbol=symbol, dates=[date]).next()
+        self.assertEqual(cache_price, price)
+        self.assertEqual(cache_date, date)
         self.assertEqual(self.collection.find({'start' : range_start,
                                                'end' : range_end,
                                                'symbol' : symbol}).next()['price'], price)
