@@ -28,8 +28,8 @@ class EPS(object):
         return _value_from_filing(filing, cls.element_of_interest)
     
     @classmethod
-    def get_data(cls, symbol, data):
-        return _get_data(cls, symbol, data)
+    def get_data(cls, symbol, date):
+        return _get_data(cls, symbol, date)
     
     
 def _get_data(metric, symbol, date):
