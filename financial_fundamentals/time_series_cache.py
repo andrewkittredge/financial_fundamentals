@@ -12,6 +12,8 @@ from financial_fundamentals import prices
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import sqlite3
 from financial_fundamentals.mongo_drivers import MongoTimeseries
+from financial_fundamentals.exceptions import NoDataForStock
+import warnings
 
 def _load_from_cache(cache,
                     indexes={},
@@ -27,8 +29,12 @@ def _load_from_cache(cache,
     python_datetimes = list(datetime_index.to_pydatetime())
     for symbol in stocks:
         # there's probably a clever way of avoiding building a dictionary.
-        values = {date : value for date, value in cache.get(symbol=symbol, 
+        try:
+            values = {date : value for date, value in cache.get(symbol=symbol, 
                                                            dates=python_datetimes)}
+        except NoDataForStock:
+            warnings.warn('No data for {}'.format(symbol))
+            continue
         series = pd.Series(values)
         df[symbol] = series
         

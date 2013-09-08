@@ -15,6 +15,7 @@ from urlparse import urljoin
 from collections import defaultdict
 from bisect import bisect_left
 from dateutil.relativedelta import relativedelta
+from financial_fundamentals.exceptions import NoDataForStock
 
 ticker_search_string = 'http://www.sec.gov/cgi-bin/browse-edgar?company=&match=&CIK={}&filenum=&State=&Country=&SIC=&owner=exclude&Find=Find+Companies&action=getcompany'
 
@@ -97,7 +98,7 @@ def _filing_url_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
             filing_map[ticker][(filing_type, filing_date_before_date_requested)], 
             filing_date_after_that)
 
-FILINGS_CACHE = {} # TODO: Get rid of this global.
+
 def filing_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
     try:
         interval_start, filing_url, interval_end = _filing_url_before(ticker, 
@@ -106,12 +107,11 @@ def filing_before(ticker, filing_type, date_after, filing_map=FILING_URLS):
                                                                       filing_map)
     except XBRLNotAvailable:
         raise NoFilingFound('No filing found for ticker {}'.format(ticker))
-    filing_text = FILINGS_CACHE.setdefault(filing_url, 
-                                           ET.fromstring(requests.get(filing_url).text))
+    filing_text = ET.fromstring(requests.get(filing_url).text)
     return interval_start, filing_text, interval_end
 
-class NoFilingFound(Exception):
-    pass
+class NoFilingFound(NoDataForStock):
+    '''No filings on Edgar for this stock.'''
 
 import mock
 class TestsEdgar(unittest.TestCase):
