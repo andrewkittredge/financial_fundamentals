@@ -29,7 +29,7 @@ def mongo_price_cache(mongo_host='localhost', mongo_port=27017):
                                          database=db)
     return cache
 
-DEFAULT_PRICE_PATH = os.path.join(os.path.expanduser('~'), '.prices')
+DEFAULT_PRICE_PATH = os.path.join(os.path.expanduser('~'), '.prices.sqlite')
 def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
     '''Return a cache that persists prices downloaded from yahoo.
     
@@ -38,7 +38,7 @@ def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
                                                                  table='prices', 
                                                                  metric='Adj Close')
     
-DEFAULT_FUNDAMENTALS_PATH = os.path.join(os.path.expanduser('~'), '.funadmentals')
+DEFAULT_FUNDAMENTALS_PATH = os.path.join(os.path.expanduser('~'), '.fundamentals.sqlite')
 def sqlite_fundamentals_cache(metric, db_file_path=DEFAULT_FUNDAMENTALS_PATH):
     connection = sqlite3.connect(db_file_path)
     driver = sqlite_drivers.SQLiteIntervalseries(connection=connection,
