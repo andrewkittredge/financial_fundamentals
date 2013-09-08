@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.1.1'
+version = '0.2.1'
 desc = '''\
 FinancialFundamentals
 =========================
@@ -43,6 +43,7 @@ setup(name='FinancialFundamentals',
 	'pymongo',
 	'mock',
 	'pandas',
+	'zipline',
 	],
       url='https://github.com/andrewkittredge/financial_fundamentals',
 )
