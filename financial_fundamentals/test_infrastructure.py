@@ -12,9 +12,7 @@ def turn_on_request_caching():
     requests_cache.configure(os.path.join(os.path.expanduser('~'), 
                                           '.fundamentals_test_requests'))
 
-import financial_fundamentals
-TEST_DOCS_DIR = os.path.join(os.path.split(os.path.dirname(financial_fundamentals.__file__))[0], 
-                             'docs', 'test') 
+TEST_DOCS_DIR = os.path.join(os.path.dirname(__file__), 'test_collateral') 
 
 
 import datetime
