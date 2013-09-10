@@ -66,7 +66,10 @@ class FinancialDataTimeSeriesCache(object):
     def _get_set(self, symbol, dates):
         new_records = list(self._get_data(symbol, dates))
         self._database.set(symbol, new_records)
-        return new_records
+        for date, value in new_records:
+            if date in dates: # only yield dates that were missing.
+                yield date, value
+        
     
     @classmethod
     def build_sqlite_price_cache(cls, 
