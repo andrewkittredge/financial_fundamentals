@@ -9,10 +9,10 @@ import unittest
 from financial_fundamentals import sqlite_price_cache, accounting_metrics
 from financial_fundamentals.caches import sqlite_fundamentals_cache
 import pytz
+from tests.test_infrastructure import turn_on_request_caching
 class InitMethodTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from financial_fundamentals.test_infrastructure import turn_on_request_caching
         turn_on_request_caching()
 
     def test_sqlite_price_cache(self):
@@ -41,7 +41,6 @@ class InitMethodTests(unittest.TestCase):
         
 class EndToEndTests(unittest.TestCase):
     def test_quarterly_eps_sqlite(self):
-        from financial_fundamentals.test_infrastructure import turn_on_request_caching
         turn_on_request_caching()
         import datetime
         from financial_fundamentals.accounting_metrics import QuarterlyEPS

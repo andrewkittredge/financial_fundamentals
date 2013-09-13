@@ -9,6 +9,7 @@ import pymongo
 from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
     MongoTimeseries
 import pytz
+from tests.test_infrastructure import IntervalseriesTestCase
 class MongoTestCase(unittest.TestCase):
     host, port = 'localhost', 27017
     def setUp(self):
@@ -19,7 +20,7 @@ class MongoTestCase(unittest.TestCase):
     def tearDown(self):
         self.collection.drop()
 
-from financial_fundamentals.test_infrastructure import IntervalseriesTestCase
+
 class MongoIntervalSeriesTestCase(MongoTestCase, IntervalseriesTestCase):
     def setUp(self):
         super(MongoIntervalSeriesTestCase, self).setUp()

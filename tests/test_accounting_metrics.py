@@ -8,9 +8,9 @@ import os
 import unittest
 from financial_fundamentals.accounting_metrics import QuarterlyEPS,\
     BookValuePerShare
+from tests.test_infrastructure import TEST_DOCS_DIR
 
 class TestsXBRL(unittest.TestCase):
-    from financial_fundamentals.test_infrastructure import TEST_DOCS_DIR
     test_filing_path = os.path.join(TEST_DOCS_DIR, 'aapl-20121229.xml')
     asset_test_value = 196088000000.
     liabilities_test_value = 68742000000.

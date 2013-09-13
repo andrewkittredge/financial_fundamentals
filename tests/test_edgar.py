@@ -10,10 +10,11 @@ from financial_fundamentals.edgar import populate_filing_urls_map,\
     _filing_url_before, get_document_urls, filing_before, NoFilingFound
 from collections import defaultdict
 from datetime import date
+from tests.test_infrastructure import turn_on_request_caching, TEST_DOCS_DIR
+import os
 
 class TestsEdgar(unittest.TestCase):
     def setUp(self):
-        from financial_fundamentals.test_infrastructure import turn_on_request_caching
         turn_on_request_caching()
 
     def test_populate_filing_url_map(self):
@@ -56,8 +57,6 @@ class TestsEdgar(unittest.TestCase):
         ABBV had just been spun off or something.
         
         '''
-        import os
-        from financial_fundamentals.test_infrastructure import TEST_DOCS_DIR
         with open(os.path.join(TEST_DOCS_DIR, 'abbv_search_results.html')) as test_html:
             text.return_value = test_html.read()
 

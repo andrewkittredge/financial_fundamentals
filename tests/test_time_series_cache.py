@@ -16,11 +16,11 @@ from financial_fundamentals.mongo_drivers import MongoTimeseries,\
     MongoIntervalseries
 from financial_fundamentals import prices
 from tests.test_mongo_drivers import MongoTestCase
+from tests.test_infrastructure import turn_on_request_caching
 
 class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from financial_fundamentals.test_infrastructure import turn_on_request_caching
         turn_on_request_caching()
         
     def test_load_from_cache(self):

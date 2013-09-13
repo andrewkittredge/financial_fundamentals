@@ -12,6 +12,7 @@ import sqlite3
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries,\
     SQLiteIntervalseries
 import pytz
+from tests.test_infrastructure import IntervalseriesTestCase
 class SQLiteTestCase(unittest.TestCase):
     def setUp(self):
         self.connection = sqlite3.connect(':memory:')
@@ -103,7 +104,7 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
         self.assertEqual(row['metric'], self.metric)
         self.assertEqual(row['value'], price)
 
-from financial_fundamentals.test_infrastructure import IntervalseriesTestCase
+
 class SQLiteIntervalseriesTestCase(SQLiteTestCase, IntervalseriesTestCase):
     table = 'fundamentals'
     def setUp(self):
