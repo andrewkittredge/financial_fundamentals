@@ -13,6 +13,11 @@ from financial_fundamentals.sqlite_drivers import SQLiteTimeseries,\
     SQLiteIntervalseries
 import pytz
 from tests.test_infrastructure import IntervalseriesTestCase
+from zipline.utils.tradingcalendar import get_trading_days
+from financial_fundamentals.indicies import S_P_500_TICKERS
+import random
+from collections import defaultdict
+
 class SQLiteTestCase(unittest.TestCase):
     def setUp(self):
         self.connection = sqlite3.connect(':memory:')
@@ -37,8 +42,6 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
         self.assertEqual(cache_date, date)
         
     def insert_date_combos(self, symbol_date_combos):
-        import random
-        from collections import defaultdict
         test_vals = defaultdict(dict)
         for symbol, date in symbol_date_combos:
             price = random.randint(0, 1000)
@@ -79,8 +82,6 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
     @unittest.SkipTest # Slow
     def test_volume(self):
         '''make sure a larger number of records doesn't choke it somehow.'''
-        from financial_fundamentals.indicies import S_P_500_TICKERS
-        from zipline.utils.tradingcalendar import get_trading_days
         symbols = S_P_500_TICKERS[:200]
         datetimeindex = get_trading_days(start=datetime.datetime(2012, 1, 1, tzinfo=pytz.UTC), 
                                  end=datetime.datetime(2012, 7, 4, tzinfo=pytz.UTC))
@@ -103,6 +104,16 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
         self.assertEqual(row['symbol'], symbol)
         self.assertEqual(row['metric'], self.metric)
         self.assertEqual(row['value'], price)
+        
+    def test_lots_of_dates(self):
+        '''sqlite can only handle 999 variables.'''
+        start = datetime.datetime(1990, 1,1, tzinfo=pytz.UTC)
+        end = datetime.datetime.now(pytz.UTC)
+        dates = list(get_trading_days(start, end).to_pydatetime())
+        for price, date in enumerate(dates):
+            self.connection.execute('INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'.format(self.table),
+                                    ('ABC', date, self.metric, price))
+        list(self.driver.get(symbol='ABC', dates=dates))
 
 
 class SQLiteIntervalseriesTestCase(SQLiteTestCase, IntervalseriesTestCase):
