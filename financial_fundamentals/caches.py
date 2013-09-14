@@ -4,11 +4,10 @@ from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
 from financial_fundamentals.time_series_cache import FinancialDataRangesCache,\
     FinancialDataTimeSeriesCache
 from financial_fundamentals.prices import get_prices_from_yahoo
-import pytz
 import sqlite3
 
 import os
-from financial_fundamentals import accounting_metrics, sqlite_drivers
+from financial_fundamentals import sqlite_drivers
 
 
 def mongo_fundamentals_cache(metric, mongo_host='localhost', mongo_port=27017):

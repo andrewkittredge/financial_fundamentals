@@ -7,7 +7,7 @@ import requests
 from BeautifulSoup import BeautifulSoup
 import re
 from datetime import date
-import unittest
+
 
 from xml.etree import cElementTree as ET
 import logging

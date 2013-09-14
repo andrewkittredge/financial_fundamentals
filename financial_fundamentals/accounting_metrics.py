@@ -3,7 +3,7 @@ Created on Jan 26, 2013
 
 @author: akittredge
 '''
-import unittest
+
 from financial_fundamentals.edgar import filing_before
 import datetime
 
