@@ -17,6 +17,9 @@ from financial_fundamentals.mongo_drivers import MongoTimeseries,\
 from financial_fundamentals import prices
 from tests.test_mongo_drivers import MongoTestCase
 from tests.test_infrastructure import turn_on_request_caching
+from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
+import sqlite3
+import numpy as np
 
 class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
     @classmethod
@@ -93,6 +96,32 @@ class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
                                    end=datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC))
         self.assertEqual(df['SPX'][datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 1409.46)
         
+    def test_nan_insertion(self):
+        '''when the external data source returns a subset of the requested dates
+        NaNs are inserted into the database for the dates not returned.
+        '''
+        connection = sqlite3.connect(':memory:')
+        driver = SQLiteTimeseries(connection=connection, 
+                                  table='price', 
+                                  metric='Adj Close')
+        symbol = 'MSFT'
+        missing_date = datetime.datetime(2012, 12, 4, tzinfo=pytz.UTC)
+        missing_dates = {missing_date}
+        returned_dates = {datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC),
+                          datetime.datetime(2012, 12, 2, tzinfo=pytz.UTC),
+                          datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC),
+                          }
+        requested_dates = missing_dates | returned_dates
+        mock_yahoo = mock.Mock()
+        mock_yahoo.return_value = ((date, 10.) for date in returned_dates)
+        cache = FinancialDataTimeSeriesCache(gets_data=mock_yahoo, database=driver)
+        cached_values = list(cache.get(symbol=symbol, dates=list(requested_dates)))
+        db_val = connection.execute("SELECT value FROM price WHERE date = '{}'".format(missing_date)).next()
+        self.assertEqual(db_val['value'], 'NaN')
+        cache_value_dict = {date : value for date, value in cached_values}
+        assert np.isnan(cache_value_dict[missing_date])
+
+        
 import mock
 class FinancialDataRangesCacheTestCase(unittest.TestCase):
     def setUp(self):
@@ -149,3 +178,7 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
         self.assertEqual(self.collection.find({'start' : range_start,
                                                'end' : range_end,
                                                'symbol' : symbol}).next()['price'], price)
+        
+if __name__ == '__main__':
+    suite = unittest.TestLoader().loadTestsFromTestCase(FinancialDataTimeSeriesCacheTestCase)
+    unittest.TextTestRunner().run(suite)

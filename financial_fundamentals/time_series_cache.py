@@ -14,6 +14,7 @@ import sqlite3
 from financial_fundamentals.mongo_drivers import MongoTimeseries
 from financial_fundamentals.exceptions import NoDataForStock
 import warnings
+import numpy as np
 
 def _load_from_cache(cache,
                     indexes={},
@@ -66,9 +67,16 @@ class FinancialDataTimeSeriesCache(object):
     def _get_set(self, symbol, dates):
         new_records = list(self._get_data(symbol, dates))
         self._database.set(symbol, new_records)
+        missing_dates = set(dates)
         for date, value in new_records:
+            missing_dates.discard(date)
             if date in dates: # only yield dates that were missing.
                 yield date, value
+        self._database.set(symbol, ((missing_date, 'NaN') for 
+                                    missing_date in missing_dates)
+                           )
+        for missing_date in missing_dates:
+            yield missing_date, np.nan
         
     
     @classmethod
