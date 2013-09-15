@@ -10,13 +10,16 @@ from financial_fundamentals import sqlite_price_cache, accounting_metrics
 from financial_fundamentals.caches import sqlite_fundamentals_cache
 import pytz
 from tests.test_infrastructure import turn_on_request_caching
+import datetime
+from financial_fundamentals.accounting_metrics import QuarterlyEPS
+
+
 class InitMethodTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         turn_on_request_caching()
 
     def test_sqlite_price_cache(self):
-        import datetime
         cache = sqlite_price_cache(db_file_path=':memory:')
         prices = cache.get(symbol='GOOG', 
                             dates=[datetime.datetime(2013, 8, 1, tzinfo=pytz.UTC),
@@ -27,7 +30,6 @@ class InitMethodTests(unittest.TestCase):
                                848.55, delta=.1)
         
     def test_sqlite_fundamentals_cache(self):
-        import datetime
         cache = sqlite_fundamentals_cache(metric=accounting_metrics.QuarterlyEPS, 
                                           db_file_path=':memory:')
         symbol = 'GOOG'
@@ -42,8 +44,6 @@ class InitMethodTests(unittest.TestCase):
 class EndToEndTests(unittest.TestCase):
     def test_quarterly_eps_sqlite(self):
         turn_on_request_caching()
-        import datetime
-        from financial_fundamentals.accounting_metrics import QuarterlyEPS
         start, end = (datetime.datetime(2013, 1, 1, tzinfo=pytz.UTC), 
                       datetime.datetime(2013, 8, 1, tzinfo=pytz.UTC))
         cache = sqlite_fundamentals_cache(metric=QuarterlyEPS, 
@@ -51,5 +51,3 @@ class EndToEndTests(unittest.TestCase):
         earnings = cache.load_from_cache(stocks=['GOOG', 'AAPL'], 
                                          start=start, 
                                          end=end)
-        pass
-
