@@ -9,6 +9,7 @@ import dateutil.parser
 import sqlite3
 
 import pytz
+import datetime
 
 class SQLiteDriver(object):
     def __init__(self, connection, table, metric):
@@ -48,7 +49,9 @@ class SQLiteTimeseries(SQLiteDriver):
             args = [symbol] + dates + [self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
-                date = dateutil.parser.parse(row['date']).replace(tzinfo=pytz.UTC)
+                date = datetime.datetime.strptime(row['date'], 
+                                                  '%Y-%m-%d %H:%M:%S+00:00')
+                date = date.replace(tzinfo=pytz.UTC)
                 value = np.float(row['value'])
                 yield date, value
        
