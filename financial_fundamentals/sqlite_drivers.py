@@ -48,7 +48,9 @@ class SQLiteTimeseries(SQLiteDriver):
             args = [symbol] + dates + [self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
-                yield self._beautify_record(record=row)
+                date = dateutil.parser.parse(row['date']).replace(tzinfo=pytz.UTC)
+                value = np.float(row['value'])
+                yield date, value
        
     insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
     def set(self, symbol, records):
@@ -57,16 +59,7 @@ class SQLiteTimeseries(SQLiteDriver):
             for date, value in records:
                 args = (symbol, date, self._metric, value)
                 self._connection.execute(self.insert_query.format(self._table), args)
-        
     
-    @staticmethod
-    def _beautify_record(record):
-        '''Cast metric to np.float and make date tz-aware.
-        
-        '''
-        return (dateutil.parser.parse(record['date']).replace(tzinfo=pytz.UTC), 
-                    np.float(record['value']))
-        
 class SQLiteIntervalseries(SQLiteDriver):
     create_stm = 'CREATE TABLE {:s} (start timestamp, end timestamp, symbol text, metric text, value real)'
     get_qry = 'SELECT value FROM {} WHERE metric = ? AND symbol = ? AND start <= ? AND ? <= end'
