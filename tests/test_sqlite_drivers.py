@@ -79,7 +79,7 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
             cache_dict = {date : price for date, price in cached_values}
             self.assertDictEqual(prices[symbol], cache_dict)
     
-    @unittest.SkipTest('slow')
+    @unittest.skip('slow')
     def test_volume(self):
         '''make sure a larger number of records doesn't choke it somehow.'''
         symbols = S_P_500_TICKERS[:200]
