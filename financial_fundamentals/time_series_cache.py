@@ -12,7 +12,8 @@ from financial_fundamentals import prices
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import sqlite3
 from financial_fundamentals.mongo_drivers import MongoTimeseries
-from financial_fundamentals.exceptions import NoDataForStock
+from financial_fundamentals.exceptions import NoDataForStock,\
+    ExternalRequestFailed
 import warnings
 import numpy as np
 
@@ -25,19 +26,23 @@ def _load_from_cache(cache,
     '''Equivalent to zipline.utils.factory.load_from_yahoo.
     
     '''
+    assert start <= end, 'start must be before end'
     datetime_index = get_trading_days(start=start, end=end)
     df = pd.DataFrame(index=datetime_index)
     python_datetimes = list(datetime_index.to_pydatetime())
     for symbol in stocks:
         # there's probably a clever way of avoiding building a dictionary.
         try:
-            values = {date : value for date, value in cache.get(symbol=symbol, 
-                                                           dates=python_datetimes)}
+            date_values = cache.get(symbol=symbol, dates=python_datetimes)
+            values = {date : value for date, value in date_values}
         except NoDataForStock:
             warnings.warn('No data for {}'.format(symbol))
-            continue
-        series = pd.Series(values)
-        df[symbol] = series
+        except ExternalRequestFailed as e:
+            warnings.warn('Getting data for {} failed {}'.format(symbol,
+                                                                 e.message))
+        else:
+            series = pd.Series(values)
+            df[symbol] = series
         
     for name, ticker in indexes.iteritems():
         values = {date : value for date, value in cache.get(symbol=ticker, 
