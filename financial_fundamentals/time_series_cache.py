@@ -63,8 +63,12 @@ class FinancialDataTimeSeriesCache(object):
         cached_values = self._database.get(symbol=symbol, dates=dates)
         missing_dates = set(dates)
         for date, value in cached_values:
-            missing_dates.discard(date)
-            yield date, value
+            try:
+                missing_dates.remove(date)
+            except KeyError:
+                continue
+            else:
+                yield date, value
         if missing_dates:
             for date, value in self._get_set(symbol, dates=missing_dates):
                 yield date, value

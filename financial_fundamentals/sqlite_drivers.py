@@ -32,11 +32,7 @@ class SQLiteTimeseries(SQLiteDriver):
                         CREATE INDEX IF NOT EXISTS 
                         time_series_index ON {table_name} (date, symbol, metric);
                         '''
-    _get_query = '''SELECT value, date from {} 
-                    WHERE symbol = ?
-                    AND date in ({})
-                    AND metric =  ?
-                '''
+
     @classmethod
     def _ensure_table_exists(cls, connection, table):
         super(cls, SQLiteTimeseries)._ensure_table_exists(connection,
@@ -44,15 +40,20 @@ class SQLiteTimeseries(SQLiteDriver):
         with connection:
             cursor = connection.cursor()
             cursor.execute(cls._create_index_stmt.format(table_name=table))
-            
+
+    _get_query = '''SELECT value, date from {} 
+                    WHERE symbol = ?
+                    AND date BETWEEN ? AND ?
+                    AND metric =  ?
+                '''
     def get(self, symbol, dates):
-        '''return metric values for symbols and dates.'''
+        '''return all stored symbol metric values for dates between min(dates) and max(dates).
+        
+        '''
         with self._connection:
-            qry = self._get_query.format(self._table, 
-                                        ','.join('?' * len(dates)),
-                                        )
+            qry = self._get_query.format(self._table)
             cursor = self._connection.cursor()
-            args = [symbol] + dates + [self._metric]
+            args = [symbol, min(dates), max(dates), self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
                 #should be equivalent to but faster than  
