@@ -52,7 +52,7 @@ S_P_500_TICKERS = ['A', 'AA', 'AAPL', 'ABBV', 'ABC', 'ABT', 'ACE', 'ACN',
                         'LLL', 'LLTC', 'LLY', 'LM', 'LMT', 'LNC', 'LO', 'LOW', 
                         'LRCX', 'LSI', 'LTD', 'LUK', 'LUV', 'LYB', 'M', 'MA', 
                         'MAR', 'MAS', 'MAT', 'MCD', 'MCHP', 'MCK', 'MCO', 
-                        'MDLZ', 'MDT', 'MET', 'MHP', 'MJN', 'MKC', 'MMC', 'MMM', 
+                        'MDLZ', 'MDT', 'MET', 'MHFI', 'MJN', 'MKC', 'MMC', 'MMM', 
                         'MNST', 'MO', 'MOLX', 'MON', 'MOS', 'MPC', 'MRK', 'MRO', 
                         'MS', 'MSFT', 'MSI', 'MTB', 'MU', 'MUR', 'MWV', 'MYL', 
                         'NBL', 'NBR', 'NDAQ', 'NE', 'NEE', 'NEM', 'NFLX', 'NFX', 
@@ -78,10 +78,3 @@ S_P_500_TICKERS = ['A', 'AA', 'AAPL', 'ABBV', 'ABC', 'ABT', 'ACE', 'ACN',
                         'WLP', 'WM', 'WMB', 'WMT', 'WPO', 'WPX', 'WU', 'WY', 'WYN', 
                         'WYNN', 'X', 'XEL', 'XL', 'XLNX', 'XOM', 'XRAY', 'XRX', 'XYL', 
                         'YHOO', 'YUM', 'ZION', 'ZMH']
-
-
-CLEANED_S_P_500_TICKERS = [ticker for ticker in S_P_500_TICKERS if '.' not in ticker] # yahoo doesn't like ADRs
-CLEANED_S_P_500_TICKERS.remove('PPL') # edgar doesn't know about PPL
-CLEANED_S_P_500_TICKERS.remove('ABBV') # no filings as of 2013-4-6
-CLEANED_S_P_500_TICKERS.remove('ZION') # Edgar doesn't know about these guys
-CLEANED_S_P_500_TICKERS.remove('MHP') # Or these people.
