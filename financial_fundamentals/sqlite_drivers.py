@@ -55,19 +55,21 @@ class SQLiteTimeseries(SQLiteDriver):
             args = [symbol] + dates + [self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
-                date = datetime.datetime.strptime(row['date'], 
-                                                  '%Y-%m-%d %H:%M:%S+00:00')
-                date = date.replace(tzinfo=pytz.UTC)
+                #should be equivalent to but faster than  
+                # date = datetime.datetime.strptime(row['date'], '%Y-%m-%d %H:%M:%S+00:00')
+                date = datetime.datetime(*map(int, row['date'][:11].split('-')),
+                                         tzinfo=pytz.UTC)
                 value = np.float(row['value'])
                 yield date, value
        
-    insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
+    _insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
     def set(self, symbol, records):
         '''records is a sequence of date, value items.'''
         with self._connection:
             for date, value in records:
                 args = (symbol, date, self._metric, value)
-                self._connection.execute(self.insert_query.format(self._table), args)
+                self._connection.execute(self._insert_query.format(self._table), 
+                                         args)
     
 class SQLiteIntervalseries(SQLiteDriver):
     _create_stmt = '''CREATE TABLE {table_name} 
