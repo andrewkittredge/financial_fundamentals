@@ -73,7 +73,7 @@ class SQLiteTimeseries(SQLiteDriver):
                                          args)
     
 class SQLiteIntervalseries(SQLiteDriver):
-    _create_stmt = '''CREATE TABLE {table_name} 
+    _create_stmt = '''CREATE TABLE IF NOT EXISTS {table_name} 
                         (start timestamp, 
                         end timestamp, 
                         symbol text, 
