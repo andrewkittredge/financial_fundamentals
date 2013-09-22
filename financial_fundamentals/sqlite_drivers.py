@@ -56,7 +56,7 @@ class SQLiteTimeseries(SQLiteDriver):
             args = [symbol, min(dates), max(dates), self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
-                #should be equivalent to but faster than  
+                # Equivalent to, but faster than,  
                 # date = datetime.datetime.strptime(row['date'], '%Y-%m-%d %H:%M:%S+00:00')
                 date = datetime.datetime(*map(int, row['date'][:11].split('-')),
                                          tzinfo=pytz.UTC)
@@ -67,11 +67,11 @@ class SQLiteTimeseries(SQLiteDriver):
     def set(self, symbol, records):
         '''records is a sequence of date, value items.'''
         with self._connection:
-            for date, value in records:
-                args = (symbol, date, self._metric, value)
-                self._connection.execute(self._insert_query.format(self._table), 
-                                         args)
-    
+            query = self._insert_query.format(self._table)
+            self._connection.executemany(query, ((symbol, date, self._metric, value)
+                                                 for date, value in records))
+
+
 class SQLiteIntervalseries(SQLiteDriver):
     _create_stmt = '''CREATE TABLE IF NOT EXISTS {table_name} 
                         (start timestamp, 
