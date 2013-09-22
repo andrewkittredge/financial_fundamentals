@@ -66,6 +66,7 @@ class FinancialDataTimeSeriesCache(object):
             try:
                 missing_dates.remove(date)
             except KeyError:
+                #_database.get can return data more dates than we asked for.
                 continue
             else:
                 yield date, value
