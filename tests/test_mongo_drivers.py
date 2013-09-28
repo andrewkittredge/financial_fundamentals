@@ -9,7 +9,7 @@ import pymongo
 from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
     MongoTimeseries
 import pytz
-from tests.test_infrastructure import IntervalseriesTestCase
+from tests.infrastructure import IntervalseriesTestCase
 class MongoTestCase(unittest.TestCase):
     host, port = 'localhost', 27017
     def setUp(self):

@@ -10,7 +10,7 @@ from financial_fundamentals.edgar import populate_filing_urls_map,\
     _filing_url_before, get_document_urls, filing_before, NoFilingFound
 from collections import defaultdict
 from datetime import date
-from tests.test_infrastructure import turn_on_request_caching, TEST_DOCS_DIR
+from tests.infrastructure import turn_on_request_caching, TEST_DOCS_DIR
 import os
 
 class TestsEdgar(unittest.TestCase):
