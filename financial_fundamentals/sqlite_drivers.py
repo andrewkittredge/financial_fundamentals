@@ -26,7 +26,8 @@ class SQLiteDriver(object):
             
     @classmethod
     def connect(cls, database):
-        return sqlite3.connect(database, detect_types=sqlite3.PARSE_DECLTYPES)
+        return sqlite3.connect(database, 
+                               detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
             
 class SQLiteTimeseries(SQLiteDriver):
     _create_stmt = '''CREATE TABLE IF NOT EXISTS {table_name}
@@ -79,17 +80,20 @@ class SQLiteIntervalseries(SQLiteDriver):
                         metric text, 
                         value real)
                     '''
-    _get_qry = '''SELECT value FROM {} 
-                    WHERE metric = ? AND symbol = ? AND start <= ? AND ? <= end
+    _get_qry = '''SELECT value FROM {} \
+                    WHERE metric = ? AND symbol = ? AND start <= ? AND ? <= end\
                     '''
     def get(self, symbol, date):
         '''return the metric value of symbol on date.'''
+        date = date.replace(tzinfo=None) # can't figure out timezones in sqlite.
         qry = self._get_qry.format(self._table)
-        with self._connection:
-            row = self._connection.execute(qry, (self._metric,
-                                                 symbol,
-                                                 date,
-                                                 date)).fetchone()
+        cursor = self._connection.cursor()
+        cursor.execute(qry, (self._metric,
+                             symbol,
+                             date,
+                             date))
+        row = cursor.fetchone()
+        
         return row and (np.float(row['value']) if row['value'] else np.NaN)
 
     _insert_query = '''INSERT INTO {} 
@@ -99,12 +103,26 @@ class SQLiteIntervalseries(SQLiteDriver):
         '''set value for interval start and end.'''
         qry = self._insert_query.format(self._table)
         with self._connection:
-            self._connection.execute(qry, (symbol, start, end, 
-                                           self._metric, value))
-        
+            cursor = self._connection.cursor()
+            cursor.execute(qry, (symbol, 
+                                 start, 
+                                 end, 
+                                 self._metric, 
+                                 value))
+        self._detect_duplicates()
+            
+    duplicate_query = '''
+        select * from {table_name} where rowid not in 
+            (select max(rowid) from {table_name}
+                group by start, end, symbol, metric);
+    '''
+    def _detect_duplicates(self):
+        with self._connection:
+            qry = self.duplicate_query.format(table_name=self._table)
+            assert not self._connection.execute(qry).fetchone()
         
 
-def tz_aware_timestamp_adapter(val):
+def _tz_aware_timestamp_adapter(val):
     '''from https://gist.github.com/acdha/6655391'''
     datepart, timepart = val.split(b" ")
     year, month, day = map(int, datepart.split(b"-"))
@@ -131,4 +149,10 @@ def tz_aware_timestamp_adapter(val):
  
     return val
  
-sqlite3.register_converter('timestamp', tz_aware_timestamp_adapter)
+sqlite3.register_converter('timestamp', _tz_aware_timestamp_adapter)
+
+if __name__ == '__main__':
+    connection = SQLiteIntervalseries.connect('/Users/akittredge/.fundamentals.sqlite')
+    driver = SQLiteIntervalseries(connection=connection, table='fundamentals', metric='quarterly_eps')
+    date =  datetime.datetime(2010, 01, 04)
+    print driver.get(symbol='CAT', date=date)
