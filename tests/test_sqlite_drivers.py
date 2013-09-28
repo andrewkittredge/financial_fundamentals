@@ -8,11 +8,11 @@ Created on Sep 12, 2013
 
 import unittest
 import datetime
-import sqlite3
+
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries,\
-    SQLiteIntervalseries
+    SQLiteIntervalseries, SQLiteDriver
 import pytz
-from tests.test_infrastructure import IntervalseriesTestCase
+from tests.infrastructure import IntervalseriesTestCase
 from zipline.utils.tradingcalendar import get_trading_days
 from financial_fundamentals.indicies import S_P_500_TICKERS
 import random
@@ -20,7 +20,7 @@ from collections import defaultdict
 
 class SQLiteTestCase(unittest.TestCase):
     def setUp(self):
-        self.connection = sqlite3.connect(':memory:')
+        self.connection = SQLiteDriver.connect(':memory:')
         
 class SQLiteTimeseriesTestCase(SQLiteTestCase):
     table = 'price'
@@ -115,7 +115,24 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
                                     ('ABC', date, self.metric, price))
         list(self.driver.get(symbol='ABC', dates=dates))
 
-
+class SQLiteTimestamptTestCase(SQLiteTestCase):
+    def test_datetime_type_storage(self):
+        '''make sure we can store datetimes in sqlite.'''
+        conn = self.connection
+        table_name, test_value = 'test_table', 'test_value'
+        symbol = 'ABC'
+        driver = SQLiteTimeseries(conn, table_name, metric=test_value)
+        record_date = datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
+        driver.set(symbol=symbol, records=[(record_date, 100.)])
+        result = conn.cursor().execute('select * from {}'.format(table_name)).fetchone()
+        date = result['date']
+        self.assertIsInstance(date, datetime.datetime)
+        self.assertEqual(date.tzinfo, pytz.UTC)
+        
+        qry = 'select value from {} where date = ?'.format(table_name)
+        results = conn.cursor().execute(qry, (record_date,)).fetchall()
+        self.assertEqual(len(list(results)), 1)
+        
 class SQLiteIntervalseriesTestCase(SQLiteTestCase, IntervalseriesTestCase):
     table = 'fundamentals'
     def setUp(self):
@@ -137,3 +154,7 @@ class SQLiteIntervalseriesTestCase(SQLiteTestCase, IntervalseriesTestCase):
                                                           self.metric, 
                                                           data[self.metric]))
         
+if __name__ == '__main__':
+    suite = unittest.TestSuite()
+    suite.addTest(SQLiteTimestamptTestCase('test_datetime_type_storage'))
+    unittest.TextTestRunner().run(suite)

@@ -10,7 +10,7 @@ from zipline.utils.tradingcalendar import get_trading_days
 import datetime
 from financial_fundamentals import prices
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
-import sqlite3
+
 from financial_fundamentals.mongo_drivers import MongoTimeseries
 from financial_fundamentals.exceptions import NoDataForStock,\
     ExternalRequestFailed
@@ -94,7 +94,7 @@ class FinancialDataTimeSeriesCache(object):
                                  sqlite_file_path, 
                                  table='prices', 
                                  metric='Adj Close'):
-        connection = sqlite3.connect(sqlite_file_path)
+        connection = SQLiteTimeseries.connect(sqlite_file_path)
         db = SQLiteTimeseries(connection=connection, 
                               table=table, 
                               metric=metric)

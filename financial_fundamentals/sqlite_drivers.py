@@ -24,6 +24,10 @@ class SQLiteDriver(object):
             cursor = connection.cursor()
             cursor.execute(cls._create_stmt.format(table_name=table))
             
+    @classmethod
+    def connect(cls, database):
+        return sqlite3.connect(database, detect_types=sqlite3.PARSE_DECLTYPES)
+            
 class SQLiteTimeseries(SQLiteDriver):
     _create_stmt = '''CREATE TABLE IF NOT EXISTS {table_name}
                     (date timestamp, symbol text, metric text, value real);
@@ -35,7 +39,7 @@ class SQLiteTimeseries(SQLiteDriver):
 
     @classmethod
     def _ensure_table_exists(cls, connection, table):
-        super(cls, SQLiteTimeseries)._ensure_table_exists(connection,
+        super(SQLiteTimeseries, cls)._ensure_table_exists(connection,
                                                           table)
         with connection:
             cursor = connection.cursor()
@@ -56,12 +60,7 @@ class SQLiteTimeseries(SQLiteDriver):
             args = [symbol, min(dates), max(dates), self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
-                # Equivalent to, but faster than,  
-                # date = datetime.datetime.strptime(row['date'], '%Y-%m-%d %H:%M:%S+00:00')
-                date = datetime.datetime(*map(int, row['date'][:11].split('-')),
-                                         tzinfo=pytz.UTC)
-                value = np.float(row['value'])
-                yield date, value
+                yield row['date'], np.float(row['value'])
        
     _insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
     def set(self, symbol, records):
@@ -103,3 +102,33 @@ class SQLiteIntervalseries(SQLiteDriver):
             self._connection.execute(qry, (symbol, start, end, 
                                            self._metric, value))
         
+        
+
+def tz_aware_timestamp_adapter(val):
+    '''from https://gist.github.com/acdha/6655391'''
+    datepart, timepart = val.split(b" ")
+    year, month, day = map(int, datepart.split(b"-"))
+ 
+    if b"+" in timepart:
+        timepart, tz_offset = timepart.rsplit(b"+", 1)
+        if tz_offset == b'00:00':
+            tzinfo = pytz.utc
+        else:
+            hours, minutes = map(int, tz_offset.split(b':', 1))
+            tzinfo = pytz.utc(datetime.timedelta(hours=hours, minutes=minutes))
+    else:
+        tzinfo = None
+ 
+    timepart_full = timepart.split(b".")
+    hours, minutes, seconds = map(int, timepart_full[0].split(b":"))
+ 
+    if len(timepart_full) == 2:
+        microseconds = int('{:0<6.6}'.format(timepart_full[1].decode()))
+    else:
+        microseconds = 0
+ 
+    val = datetime.datetime(year, month, day, hours, minutes, seconds, microseconds, tzinfo)
+ 
+    return val
+ 
+sqlite3.register_converter('timestamp', tz_aware_timestamp_adapter)

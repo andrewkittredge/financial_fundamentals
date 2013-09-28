@@ -16,9 +16,8 @@ from financial_fundamentals.mongo_drivers import MongoTimeseries,\
     MongoIntervalseries
 from financial_fundamentals import prices
 from tests.test_mongo_drivers import MongoTestCase
-from tests.test_infrastructure import turn_on_request_caching
+from tests.infrastructure import turn_on_request_caching
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
-import sqlite3
 import numpy as np
 
 class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
@@ -100,7 +99,7 @@ class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
         '''when the external data source returns a subset of the requested dates
         NaNs are inserted into the database for the dates not returned.
         '''
-        connection = sqlite3.connect(':memory:')
+        connection = SQLiteTimeseries.connect(':memory:')
         driver = SQLiteTimeseries(connection=connection, 
                                   table='price', 
                                   metric='Adj Close')

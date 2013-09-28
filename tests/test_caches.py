@@ -9,9 +9,12 @@ import unittest
 from financial_fundamentals import sqlite_price_cache, accounting_metrics
 from financial_fundamentals.caches import sqlite_fundamentals_cache
 import pytz
-from tests.test_infrastructure import turn_on_request_caching
+from . infrastructure import turn_on_request_caching
 import datetime
 from financial_fundamentals.accounting_metrics import QuarterlyEPS
+import sqlite3
+from financial_fundamentals.sqlite_drivers import SQLiteIntervalseries
+from financial_fundamentals.time_series_cache import FinancialDataRangesCache
 
 
 class InitMethodTests(unittest.TestCase):
@@ -40,6 +43,30 @@ class InitMethodTests(unittest.TestCase):
         values = cache.get(symbol=symbol, dates=dates)
         value_d = {date : value for date, value in values}
         self.assertEqual(value_d[datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 6.53)
+
+class TestFundamentalsCache(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        turn_on_request_caching()
+        
+    def test_border_behavior(self):
+        '''Fundamentals were being inserted twice because of an off by one error.'''
+        metric = accounting_metrics.QuarterlyEPS
+        symbol = 'CSCO'
+        connection = sqlite3.connect(':memory:', detect_types=sqlite3.PARSE_DECLTYPES)
+        driver = SQLiteIntervalseries(connection=connection,
+                                     table='fundamentals',
+                                     metric=metric.metric_name)
+        cache = FinancialDataRangesCache(gets_data=metric.get_data, database=driver)
+        dates = {datetime.datetime(2010, 2, 17)}
+        list(cache.get(symbol, dates=dates))
+        
+        count_query = "SELECT COUNT(*)  AS count FROM fundamentals WHERE symbol = '{}'".format(symbol)
+        count = connection.execute(count_query).next()['count']
+        self.assertEqual(count, 1)
+        list(cache.get(symbol, dates=dates))
+        count = connection.execute(count_query).next()['count']
+        self.assertEqual(count, 1)
         
 class EndToEndTests(unittest.TestCase):
     def test_quarterly_eps_sqlite(self):

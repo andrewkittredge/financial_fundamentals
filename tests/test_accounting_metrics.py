@@ -8,7 +8,7 @@ import os
 import unittest
 from financial_fundamentals.accounting_metrics import QuarterlyEPS,\
     BookValuePerShare
-from tests.test_infrastructure import TEST_DOCS_DIR
+from tests.infrastructure import TEST_DOCS_DIR
 
 class TestsXBRL(unittest.TestCase):
     test_filing_path = os.path.join(TEST_DOCS_DIR, 'aapl-20121229.xml')

@@ -4,7 +4,7 @@ from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
 from financial_fundamentals.time_series_cache import FinancialDataRangesCache,\
     FinancialDataTimeSeriesCache
 from financial_fundamentals.prices import get_prices_from_yahoo
-import sqlite3
+
 
 import os
 from financial_fundamentals import sqlite_drivers
@@ -37,7 +37,7 @@ def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
     
 DEFAULT_FUNDAMENTALS_PATH = os.path.join(os.path.expanduser('~'), '.fundamentals.sqlite')
 def sqlite_fundamentals_cache(metric, db_file_path=DEFAULT_FUNDAMENTALS_PATH):
-    connection = sqlite3.connect(db_file_path)
+    connection = sqlite_drivers.SQLiteIntervalseries.connect(db_file_path)
     driver = sqlite_drivers.SQLiteIntervalseries(connection=connection,
                                                  table='fundamentals',
                                                  metric=metric.metric_name)
