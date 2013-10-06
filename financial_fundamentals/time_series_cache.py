@@ -134,6 +134,7 @@ class FinancialDataRangesCache(object):
     
     def _get_set(self, symbol, date):
         start, value, end = self._get_data(symbol=symbol, date=date)
+        assert start <= date <= end
         self._database.set_interval(symbol=symbol, start=start, end=end, value=value)
         return value
 
