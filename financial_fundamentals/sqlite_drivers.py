@@ -81,7 +81,7 @@ class SQLiteIntervalseries(SQLiteDriver):
                         value real)
                     '''
     _get_qry = '''SELECT value FROM {} \
-                    WHERE metric = ? AND symbol = ? AND start <= ? AND ? <= end\
+                    WHERE metric = ? AND symbol = ? AND start <= ? AND (? <= end OR end IS NULL)\
                     '''
     def get(self, symbol, date):
         '''return the metric value of symbol on date.'''

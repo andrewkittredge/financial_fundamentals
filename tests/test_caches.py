@@ -9,12 +9,14 @@ import unittest
 from financial_fundamentals import sqlite_price_cache, accounting_metrics
 from financial_fundamentals.caches import sqlite_fundamentals_cache
 import pytz
-from . infrastructure import turn_on_request_caching
+from tests.infrastructure import turn_on_request_caching
 import datetime
-from financial_fundamentals.accounting_metrics import QuarterlyEPS
+from financial_fundamentals.accounting_metrics import QuarterlyEPS,\
+    AccountingMetricGetter
 import sqlite3
 from financial_fundamentals.sqlite_drivers import SQLiteIntervalseries
 from financial_fundamentals.time_series_cache import FinancialDataRangesCache
+from financial_fundamentals.edgar import HTMLEdgarDriver
 
 
 class InitMethodTests(unittest.TestCase):
@@ -24,7 +26,7 @@ class InitMethodTests(unittest.TestCase):
 
     def test_sqlite_price_cache(self):
         cache = sqlite_price_cache(db_file_path=':memory:')
-        prices = cache.get(symbol='GOOG', 
+        prices = cache.get(symbol='GOOG',
                             dates=[datetime.datetime(2013, 8, 1, tzinfo=pytz.UTC),
                                    datetime.datetime(2013, 8, 28, tzinfo=pytz.UTC),
                                    datetime.datetime(2012, 8, 12, tzinfo=pytz.UTC)])
@@ -56,8 +58,10 @@ class TestFundamentalsCache(unittest.TestCase):
         connection = sqlite3.connect(':memory:', detect_types=sqlite3.PARSE_DECLTYPES)
         driver = SQLiteIntervalseries(connection=connection,
                                      table='fundamentals',
-                                     metric=metric.metric_name)
-        cache = FinancialDataRangesCache(gets_data=metric.get_data, database=driver)
+                                     metric=metric.name)
+        metric_getter = AccountingMetricGetter(metric=metric, 
+                                           filing_getter=HTMLEdgarDriver)
+        cache = FinancialDataRangesCache(get_data=metric_getter.get_data, database=driver)
         dates = {datetime.datetime(2010, 2, 17)}
         list(cache.get(symbol, dates=dates))
         
@@ -71,10 +75,16 @@ class TestFundamentalsCache(unittest.TestCase):
 class EndToEndTests(unittest.TestCase):
     def test_quarterly_eps_sqlite(self):
         turn_on_request_caching()
-        start, end = (datetime.datetime(2013, 1, 1, tzinfo=pytz.UTC), 
-                      datetime.datetime(2013, 8, 1, tzinfo=pytz.UTC))
+        start, end = (datetime.date(2013, 1, 1), 
+                      datetime.date(2013, 8, 1))
         cache = sqlite_fundamentals_cache(metric=QuarterlyEPS, 
                                           db_file_path=':memory:')
-        earnings = cache.load_from_cache(stocks=['GOOG', 'AAPL'], 
-                                         start=start, 
-                                         end=end)
+        cache.load_from_cache(stocks=['GOOG', 'AAPL'], 
+                              start=start, 
+                              end=end)
+
+if __name__ == '__main__':
+    suite = unittest.TestSuite()
+    suite.addTest(EndToEndTests('test_quarterly_eps_sqlite'))
+    unittest.TextTestRunner().run(suite)
+    

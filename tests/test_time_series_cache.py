@@ -126,7 +126,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
     def setUp(self):
         self.mock_data_getter = mock.Mock()
         self.mock_db = mock.Mock()
-        self.date_range_cache = FinancialDataRangesCache(gets_data=self.mock_data_getter,
+        self.date_range_cache = FinancialDataRangesCache(get_data=self.mock_data_getter,
                                                          database=self.mock_db)
         
     def test_get_cache_hit(self):
@@ -157,7 +157,7 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
         self.mock_getter = mock.Mock()
         self.mongo_db = MongoIntervalseries(collection=self.collection,
                                             metric=self.metric)
-        self.cache = FinancialDataRangesCache(gets_data=self.mock_getter, 
+        self.cache = FinancialDataRangesCache(get_data=self.mock_getter, 
                                               database=self.mongo_db)
         
     def test_init(self):

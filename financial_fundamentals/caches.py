@@ -8,6 +8,8 @@ from financial_fundamentals.prices import get_prices_from_yahoo
 
 import os
 from financial_fundamentals import sqlite_drivers
+from financial_fundamentals.accounting_metrics import AccountingMetricGetter
+from financial_fundamentals.edgar import HTMLEdgarDriver
 
 
 def mongo_fundamentals_cache(metric, mongo_host='localhost', mongo_port=27017):
@@ -36,10 +38,16 @@ def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
                                                                  metric='Adj Close')
     
 DEFAULT_FUNDAMENTALS_PATH = os.path.join(os.path.expanduser('~'), '.fundamentals.sqlite')
-def sqlite_fundamentals_cache(metric, db_file_path=DEFAULT_FUNDAMENTALS_PATH):
+def sqlite_fundamentals_cache(metric, 
+                              db_file_path=DEFAULT_FUNDAMENTALS_PATH, 
+                              filing_getter=HTMLEdgarDriver):
     connection = sqlite_drivers.SQLiteIntervalseries.connect(db_file_path)
     driver = sqlite_drivers.SQLiteIntervalseries(connection=connection,
                                                  table='fundamentals',
-                                                 metric=metric.metric_name)
-    cache = FinancialDataRangesCache(gets_data=metric.get_data, database=driver)
+                                                 metric=metric.name)
+    metric_getter = AccountingMetricGetter(metric=metric, 
+                                           filing_getter=filing_getter)
+    
+    cache = FinancialDataRangesCache(get_data=metric_getter.get_data, 
+                                     database=driver)
     return cache

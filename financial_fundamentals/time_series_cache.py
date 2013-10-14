@@ -114,8 +114,8 @@ class FinancialDataTimeSeriesCache(object):
     
     
 class FinancialDataRangesCache(object):
-    def __init__(self, gets_data, database):
-        self._get_data = gets_data
+    def __init__(self, get_data, database):
+        self._get_data = get_data
         self._database = database
         
     def get(self, symbol, dates):
@@ -134,8 +134,19 @@ class FinancialDataRangesCache(object):
     
     def _get_set(self, symbol, date):
         start, value, end = self._get_data(symbol=symbol, date=date)
-        assert start <= date <= end
-        self._database.set_interval(symbol=symbol, start=start, end=end, value=value)
+        start = start and datetime.datetime(start.year, 
+                                            start.month, 
+                                            start.day, 
+                                            tzinfo=pytz.UTC)
+        end = end and datetime.datetime(end.year, 
+                                        end.month, 
+                                        end.day, 
+                                        tzinfo=pytz.UTC)
+        self._database.set_interval(symbol=symbol, 
+                                    start=start, 
+                                    end=end, 
+                                    value=value)
         return value
 
     load_from_cache = _load_from_cache
+

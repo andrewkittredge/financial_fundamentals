@@ -6,9 +6,10 @@ Created on Jan 26, 2013
 import requests
 from BeautifulSoup import BeautifulSoup
 import re
-from datetime import date
+import datetime
 from urlparse import urljoin
 import blist
+from financial_fundamentals.xbrl import XBRLDocument
 
 
 SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100'        
@@ -17,16 +18,34 @@ class XBRLNotAvailable(Exception):
 
 class Filing(object):
     '''wrap filings.'''
-    def __init__(self, filing_date, xbrl_url=None):
-        self.xbrl_url = xbrl_url
-        self.filing_date = filing_date
+    def __init__(self, filing_date, document, next_filing=None):
+        self._document = document
+        self.date = filing_date
+        self.next_filing = next_filing
 
-    def __cmp__(self, other):
-        return (self.filing_date - other.filing_date).days
+    @classmethod
+    def key_func(cls, filing_or_date):
+        #assert False
+        if isinstance(filing_or_date, cls):
+            return filing_or_date.date
+        elif isinstance(filing_or_date, datetime.datetime):
+            return filing_or_date.date()
+        else:
+            return filing_or_date
+        
+    def latest_metric_value(self, metric):
+        return self._document.latest_metric_value(metric)
+        
+    @classmethod
+    def from_xbrl_url(cls, filing_date, xbrl_url):
+        document = XBRLDocument(xbrl_url=xbrl_url)
+        return cls(filing_date=filing_date, document=document)
+    
+    def __repr__(self):
+        return '{} - {}'.format(self.__class__, self.date)
 
 
-
-class EdgarHTMLDriver(object):
+class HTMLEdgarDriver(object):
     '''Get documents from Edgar by parsing the HTML.'''
     _ticker_filings = {}
     @classmethod
@@ -36,26 +55,35 @@ class EdgarHTMLDriver(object):
             prior to the date.
         '''
         filings = cls._ticker_filings.setdefault(ticker,
-                                                 cls._get_filing_urls(ticker, 
+                                                 cls._get_sorted_filings(ticker, 
                                                                       filing_type)
                                                  )
         if filings:
-            search_filing = Filing(filing_date=date_after) # hack filing for bisecting
-            filing_before_index = filings.bisect_right(search_filing) - 1
+            filing_before_index = filings.bisect_right(date_after) - 1
             if filing_before_index == -1:
                 raise XBRLNotAvailable('date is before the first XBRL filing in Edgar.')
-            return filings[filing_before_index]
+            filing = filings[filing_before_index]
+            if filing.date == date_after:
+                filing_before_index -= 1
+                filing = filings[filing_before_index]
+            try:
+                next_filing = filings[filing_before_index + 1]
+            except IndexError:
+                next_filing = None
+            finally:
+                filing.next_filing = next_filing
+            return filing
         else:
             raise XBRLNotAvailable('No XBRL filings found.')
 
     @classmethod
-    def _get_filing_urls(cls, ticker, filing_type):
+    def _get_sorted_filings(cls, ticker, filing_type):
         '''Step 1 Search for the ticker and filing type,
             generate the urls for the document pages that have interactive data/XBRL.
         Step 2 : Get the document pages, on each page find the url for the XBRL document.
             Return a blist sorted by filing date.
         '''
-        filings = blist.sortedlist()
+        filings = blist.sortedlist(key=Filing.key_func)
         document_page_urls = cls._get_document_page_urls(ticker, filing_type)
         for url in document_page_urls:
             filing = cls._get_filing_from_document_page(url)
@@ -87,7 +115,7 @@ class EdgarHTMLDriver(object):
         filing_page = BeautifulSoup(requests.get(document_page_url).text)
         period_of_report_elem = filing_page.find('div', text='Filing Date')
         filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
-        filing_date = date(*map(int, filing_date.split('-')))
+        filing_date = datetime.date(*map(int, filing_date.split('-')))
         type_tds = filing_page.findAll('td', text='EX-101.INS')
         for type_td in type_tds:
             try:
@@ -97,9 +125,10 @@ class EdgarHTMLDriver(object):
             else:
                 break
         xbrl_url = urljoin('http://www.sec.gov', xbrl_link)
-        filing = Filing(filing_date=filing_date, xbrl_url=xbrl_url)
+        filing = Filing.from_xbrl_url(filing_date=filing_date, xbrl_url=xbrl_url)
         return filing 
 
 if __name__ == '__main__':
-    import datetime
-    print EdgarHTMLDriver.get_filing(ticker='GOOG', filing_type='10-Q', date_after=datetime.date(1960, 9, 29)).xbrl_url
+    print HTMLEdgarDriver.get_filing(ticker='GOOG', 
+                                     filing_type='10-Q', 
+                                     date_after=datetime.date(1960, 9, 29)).xbrl_url

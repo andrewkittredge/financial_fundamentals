@@ -3,57 +3,25 @@ Created on Jan 26, 2013
 
 @author: akittredge
 '''
-
-from financial_fundamentals.edgar import filing_before
 import datetime
+import pytz
+                      
+class AccountingMetric(object):
+    '''Parent class for accounting metrics.'''
 
 
-
-gaap_namespaces = ('http://fasb.org/us-gaap/2011-01-31',
-                   'http://xbrl.us/us-gaap/2009-01-31',
-                   'http://fasb.org/us-gaap/2012-01-31')
-
-def _value_from_filing(filing, element_of_interest):
-    for gaap_namespace in gaap_namespaces:
-        element_value = filing.findtext('{{{}}}{}'.format(gaap_namespace,
-                                                element_of_interest))
-        if element_value:
-            return float(element_value)
-
-
-class EPS(object):
-    element_of_interest = 'EarningsPerShareDiluted'
-    @classmethod
-    def value_from_filing(cls, filing):
-        return _value_from_filing(filing, cls.element_of_interest)
-    
-    @classmethod
-    def get_data(cls, symbol, date):
-        return _get_data(cls, symbol, date)
-    
-    
-def _get_data(metric, symbol, date):
-    interval_start, filing_text, interval_end = filing_before(ticker=symbol,
-                                                              filing_type=metric.filing_type,
-                                                              date_after=date.date())
-    interval_start = datetime.datetime(interval_start.year, 
-                                       interval_start.month, 
-                                       interval_start.day)
-    interval_end = datetime.datetime(interval_end.year, 
-                                     interval_end.month, 
-                                     interval_end.day)
-    return interval_start, metric.value_from_filing(filing_text), interval_end
-
+class EPS(AccountingMetric):
+    xbrl_tag = 'us-gaap:EarningsPerShareDiluted'
 
 class QuarterlyEPS(EPS):
     filing_type = '10-Q'
-    metric_name = 'quarterly_eps'
+    name = 'quarterly_eps'
 
 class AnnualEPS(EPS):
     filing_type = '10-K'
 
 class BookValuePerShare(object):
-    shares_outstanding_element = 'WeightedAverageNumberOfSharesOutstandingBasic'
+    shares_outstanding_element = 'us-gaap:WeightedAverageNumberOfSharesOutstandingBasic'
     @classmethod
     def value_from_filing(cls, filing):
         return cls._book_value(filing) / _value_from_filing(filing, 
@@ -74,3 +42,22 @@ class BookValuePerShare(object):
     def _liabilities(cls, filing):
         return _value_from_filing(filing, cls.liabilities_element)
     
+    
+class AccountingMetricGetter(object):
+    def __init__(self, metric, filing_getter):
+        self._metric = metric
+        self._filing_getter = filing_getter
+        self.metric_name  = self._metric.name
+        
+    def get_data(self, symbol, date):
+        date = datetime.date(date.year, date.month, date.day)
+        filing = self._filing_getter.get_filing(ticker=symbol, 
+                                                filing_type=self._metric.filing_type, 
+                                                date_after=date)
+        
+        assert filing.date < date
+        if filing.next_filing:
+            assert date <= filing.next_filing.date
+        return (filing.date, 
+                filing.latest_metric_value(self._metric), 
+                filing.next_filing and filing.next_filing.date)
