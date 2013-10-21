@@ -115,7 +115,7 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
                                     ('ABC', date, self.metric, price))
         list(self.driver.get(symbol='ABC', dates=dates))
 
-class SQLiteTimestamptTestCase(SQLiteTestCase):
+class SQLiteTimestampTestCase(SQLiteTestCase):
     def test_datetime_type_storage(self):
         '''make sure we can store datetimes in sqlite.'''
         conn = self.connection
@@ -156,5 +156,5 @@ class SQLiteIntervalseriesTestCase(SQLiteTestCase, IntervalseriesTestCase):
         
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    suite.addTest(SQLiteTimestamptTestCase('test_datetime_type_storage'))
+    suite.addTest(SQLiteIntervalseriesTestCase('test_no_end_interval'))
     unittest.TextTestRunner().run(suite)
