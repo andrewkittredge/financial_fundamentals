@@ -96,9 +96,8 @@ class SQLiteIntervalseries(SQLiteDriver):
         
         return row and (np.float(row['value']) if row['value'] else np.NaN)
 
-    _insert_query = '''INSERT INTO {} 
-                        (symbol, start, end, metric, value) VALUES (?, ?, ?, ?, ?)
-                        '''
+    _insert_query = ('INSERT INTO {} '
+                     '(symbol, start, end, metric, value) VALUES (?, ?, ?, ?, ?)')
     def set_interval(self, symbol, start, end, value):
         '''set value for interval start and end.'''
         qry = self._insert_query.format(self._table)
@@ -111,11 +110,10 @@ class SQLiteIntervalseries(SQLiteDriver):
                                  value))
         self._detect_duplicates()
             
-    duplicate_query = '''
-        select * from {table_name} where rowid not in 
-            (select max(rowid) from {table_name}
-                group by start, end, symbol, metric);
-    '''
+    duplicate_query = ('select * from {table_name} where rowid not in ' 
+                       '(select max(rowid) from {table_name}\n'
+                       'group by start, end, symbol, metric);')
+    
     def _detect_duplicates(self):
         with self._connection:
             qry = self.duplicate_query.format(table_name=self._table)
