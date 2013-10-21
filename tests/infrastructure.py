@@ -53,4 +53,17 @@ class IntervalseriesTestCase(object):
                                           symbol=symbol)
         self.assertEqual(value, np.float(price))
         
+    def test_no_end_interval(self):
+        '''verify the behavior of intervals that do not have and end date.'''
+        symbol = 'CSCO'
+        interval_start = datetime.datetime(2012, 12, 1)
+        interval_end = None
+        eps = 6.5
+        self.insert_into_database(data={'symbol' : symbol,
+                                        'start' : interval_start,
+                                        'end' : interval_end,
+                                        self.metric : eps})
+        cached_value = self.cache.get(symbol=symbol, 
+                                      date=datetime.datetime(2012, 12, 2))
+        self.assertEqual(cached_value, eps)
         
