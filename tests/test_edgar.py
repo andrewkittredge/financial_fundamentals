@@ -12,6 +12,7 @@ import os
 from financial_fundamentals.edgar import HTMLEdgarDriver, XBRLNotAvailable,\
     Filing
 import datetime
+import urlparse
 
 class TestsEdgar(unittest.TestCase):
     def setUp(self):
@@ -22,8 +23,8 @@ class TestsEdgar(unittest.TestCase):
                                             filing_type='10-Q',
                                             date_after=date(2013, 1, 24)
                                             )
-        self.assertEqual(filing._document._xbrl_url, 
-                         'http://edgar.sec.gov/Archives/edgar/data/320193/000119312512314552/aapl-20120630.xml')
+        self.assertEqual(urlparse.urlsplit(filing._document._xbrl_url).path.split('/')[-1],
+                         'aapl-20120630.xml')
 
     def test_mmm(self):
         '''This was getting a text file instead of xml.
