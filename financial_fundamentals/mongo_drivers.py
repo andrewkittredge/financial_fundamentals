@@ -65,7 +65,10 @@ class MongoIntervalseries(MongoTimeseries):
     def get(self, symbol, date):
         cursor = self._collection.find({'symbol' : symbol,
                                         'start' : {'$lte' : date},
-                                        'end' : {'$gte' : date}})
+                                        '$or' : [{'end' : {'$gte' : date}},
+                                                  {'end' : None}],
+                                        }
+                                         )
         try:
             record = cursor.next()
         except StopIteration:
