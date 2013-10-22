@@ -11,7 +11,8 @@ class AccountingMetric(object):
 
 
 class EPS(AccountingMetric):
-    xbrl_tag = 'us-gaap:EarningsPerShareDiluted'
+    xbrl_tags = ['us-gaap:EarningsPerShareDiluted',
+                 'us-gaap:EarningsPerShareBasicAndDiluted']
 
 class QuarterlyEPS(EPS):
     filing_type = '10-Q'

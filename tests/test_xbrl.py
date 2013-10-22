@@ -33,7 +33,7 @@ class Test(unittest.TestCase):
         
     def test_get_most_recent_metric_value(self):
         metric = mock.Mock()
-        metric.xbrl_tag = 'us-gaap:EarningsPerShareDiluted'
+        metric.xbrl_tags = ['us-gaap:EarningsPerShareDiluted']
         self.assertEqual(self.xbrl_doc.latest_metric_value(metric),
                          13.81)
         

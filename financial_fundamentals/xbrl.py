@@ -7,6 +7,7 @@ Created on Oct 8, 2013
 import dateutil
 import xmltodict
 import requests
+from financial_fundamentals.exceptions import NoDataForStockOnDate
 
 class TimeSpanContext(object):
     '''Encapsulate a time span XBRL context.'''
@@ -57,11 +58,23 @@ class XBRLDocument(object):
 
     def latest_metric_value(self, metric):
         context_dates = self.time_span_contexts_dict()
-        metric_node = sorted(self._xbrl_dict[metric.xbrl_tag],
+        for tag in metric.xbrl_tags:
+            try:
+                metric_nodes = self._xbrl_dict[tag]
+            except KeyError:
+                continue
+            else:
+                break
+        else:
+            raise MetricNodeNotFound('Did not find any of {} in the document @ '\
+                                     .format(self.xbrl_tags, self._xbrl_url))
+        metric_node = sorted(metric_nodes,
                              key=lambda value : context_dates[value['@contextRef']].start_date, 
                              reverse=True)[0]
         return float(metric_node['#text'])
     
+class MetricNodeNotFound(NoDataForStockOnDate):
+    pass
 
 def _find_node(xml_dict, key):
     '''OMG I hate XML.'''
