@@ -42,9 +42,9 @@ class InitMethodTests(unittest.TestCase):
                  datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC), 
                  datetime.datetime(2012, 12, 4, tzinfo=pytz.UTC),
                  ]
-        values = cache.get(symbol=symbol, dates=dates)
-        value_d = {date : value for date, value in values}
-        self.assertEqual(value_d[datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 6.53)
+        values = list(cache.get(symbol=symbol, dates=dates))
+        self.assertEqual(values[1], 6.53)
+        
 
 class TestFundamentalsCache(unittest.TestCase):
     @classmethod

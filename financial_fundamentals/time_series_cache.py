@@ -128,11 +128,12 @@ class FinancialDataRangesCache(object):
             # operation will set multiple dates per call.
             cached_value = self._database.get(symbol=symbol, date=date)
             if cached_value:
-                yield date, cached_value
+                yield cached_value
             else:
-                yield date, self._get_set(symbol=symbol, date=date)
+                yield self._get_set(symbol=symbol, date=date)
     
     def _get_set(self, symbol, date):
+        print 'cache miss', symbol, date
         start, value, end = self._get_data(symbol=symbol, date=date)
         start = start and datetime.datetime(start.year, 
                                             start.month, 
@@ -148,5 +149,23 @@ class FinancialDataRangesCache(object):
                                     value=value)
         return value
 
-    load_from_cache = _load_from_cache
-
+    def load_from_cache(self, 
+                        stocks, 
+                        start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
+                        end=datetime.datetime.now().replace(tzinfo=pytz.utc)):
+        assert start <= end, 'start must be before end'
+        datetime_index = get_trading_days(start=start, end=end)
+        df = pd.DataFrame(index=datetime_index)
+        python_datetimes = list(datetime_index.to_pydatetime())
+        for symbol in stocks:
+            try:
+                values = self.get(symbol=symbol, dates=python_datetimes)
+                series = pd.Series(data=values, index=datetime_index)
+            except NoDataForStock:
+                warnings.warn('No data for {}'.format(symbol))
+            except ExternalRequestFailed as e:
+                warnings.warn('Getting data for {} failed {}'.format(symbol,
+                                                                     e.message))
+            else:
+                df[symbol] = series
+        return df

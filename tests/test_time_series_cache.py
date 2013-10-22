@@ -134,9 +134,8 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         date = datetime.datetime(2012, 12, 1)
         value = 100.
         self.mock_db.get.return_value = value
-        cache_date, cache_value = self.date_range_cache.get(symbol=symbol, dates=[date]).next()
+        cache_value = self.date_range_cache.get(symbol=symbol, dates=[date]).next()
         self.assertEqual(cache_value, value)
-        self.assertEqual(cache_date, date)
 
         
     def test_cache_miss(self):
@@ -171,9 +170,8 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
         self.mock_getter.return_value = (range_start,
                                          price,
                                          range_end)
-        cache_date, cache_price = self.cache.get(symbol=symbol, dates=[date]).next()
+        cache_price = self.cache.get(symbol=symbol, dates=[date]).next()
         self.assertEqual(cache_price, price)
-        self.assertEqual(cache_date, date)
         self.assertEqual(self.collection.find({'start' : range_start,
                                                'end' : range_end,
                                                'symbol' : symbol}).next()['price'], price)
