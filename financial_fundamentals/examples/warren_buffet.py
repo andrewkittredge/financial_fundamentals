@@ -6,10 +6,11 @@ Created on Sep 24, 2013
 from zipline.algorithm import TradingAlgorithm
 from datetime import datetime
 import pytz
-from financial_fundamentals import sqlite_fundamentals_cache
+from financial_fundamentals import sqlite_fundamentals_cache,\
+    mongo_fundamentals_cache, mongo_price_cache
 from financial_fundamentals.accounting_metrics import QuarterlyEPS
 from financial_fundamentals import sqlite_price_cache
-from financial_fundamentals.indicies import DOW_TICKERS
+from financial_fundamentals.indicies import DOW_TICKERS, S_P_500_TICKERS
 from zipline.transforms.batch_transform import batch_transform
 import numpy as np
 import pandas as pd
@@ -78,18 +79,18 @@ class BuysLowSellsHigh(TradingAlgorithm):
         for stock, order_amount in diff_amount[diff_amount != 0].dropna().iteritems():
             self.order(sid=stock, amount=order_amount)
             
-        
     
 def buy_low_sell_high(start=datetime(2013, 6, 1, tzinfo=pytz.UTC),
                       end=datetime(2013, 9, 15, tzinfo=pytz.UTC),
                       metric=QuarterlyEPS,
-                      fundamentals_cache=sqlite_fundamentals_cache,
-                      price_cache=sqlite_price_cache,
-                      stocks=DOW_TICKERS):
-    denominators = fundamentals_cache(metric).load_from_cache(stocks=stocks,
+                      fundamentals_cache=mongo_fundamentals_cache,
+                      price_cache=mongo_price_cache,
+                      stocks=S_P_500_TICKERS):
+    earnings = fundamentals_cache(metric).load_from_cache(stocks=stocks,
                                                               start=start,
                                                               end=end)
-    warren_buffet = BuysLowSellsHigh(earnings=denominators)
+    earnings[earnings < 0] = 0 # negative p/e's don't make sense.
+    warren_buffet = BuysLowSellsHigh(earnings=earnings)
     prices = price_cache().load_from_cache(stocks=stocks, start=start, end=end)
     warren_buffet.run(prices)
 
