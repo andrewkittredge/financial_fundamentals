@@ -67,7 +67,7 @@ class XBRLDocument(object):
                 break
         else:
             raise MetricNodeNotFound('Did not find any of {} in the document @ '\
-                                     .format(self.xbrl_tags, self._xbrl_url))
+                                     .format(metric.xbrl_tags, self._xbrl_url))
         metric_node = sorted(metric_nodes,
                              key=lambda value : context_dates[value['@contextRef']].start_date, 
                              reverse=True)[0]
