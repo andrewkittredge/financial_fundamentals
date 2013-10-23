@@ -10,10 +10,11 @@ import datetime
 from urlparse import urljoin
 import blist
 from financial_fundamentals.xbrl import XBRLDocument
+from financial_fundamentals.exceptions import NoDataForStock
 
 
 SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100'        
-class XBRLNotAvailable(Exception):
+class XBRLNotAvailable(NoDataForStock):
     pass
 
 class Filing(object):

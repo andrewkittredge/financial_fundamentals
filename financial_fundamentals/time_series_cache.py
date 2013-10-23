@@ -13,7 +13,7 @@ from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 
 from financial_fundamentals.mongo_drivers import MongoTimeseries
 from financial_fundamentals.exceptions import NoDataForStock,\
-    ExternalRequestFailed
+    ExternalRequestFailed, NoDataForStockOnDate
 import warnings
 import numpy as np
 
@@ -161,7 +161,7 @@ class FinancialDataRangesCache(object):
             try:
                 values = self.get(symbol=symbol, dates=python_datetimes)
                 series = pd.Series(data=values, index=datetime_index)
-            except NoDataForStock:
+            except (NoDataForStock, NoDataForStockOnDate):
                 warnings.warn('No data for {}'.format(symbol))
             except ExternalRequestFailed as e:
                 warnings.warn('Getting data for {} failed {}'.format(symbol,
