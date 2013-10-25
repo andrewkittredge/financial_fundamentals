@@ -88,9 +88,15 @@ class TestsEdgar(unittest.TestCase):
             driver.get_filing(tickers=None, 
                               filing_type=None, 
                               date_after=datetime.date(2012, 12, 16))
+            
+    def test_JCP(self):
+        '''was getting a non-xbrl doc back.'''
+        document_page_that_failed = 'http://sec.gov/Archives/edgar/data/1166126/000116612613000041/0001166126-13-000041-index.htm'
+        filing = HTMLEdgarDriver._get_filing_from_document_page(document_page_url=document_page_that_failed)
+        self.assertEqual(filing._document._xbrl_url.split('/')[-1], 'jcp-20130504.xml')
         
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    suite.addTest(TestsEdgar('test_sort_order'))
+    suite.addTest(TestsEdgar('test_JCP'))
     unittest.TextTestRunner().run(suite)
     

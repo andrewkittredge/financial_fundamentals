@@ -11,6 +11,7 @@ from urlparse import urljoin
 import blist
 from financial_fundamentals.xbrl import XBRLDocument
 from financial_fundamentals.exceptions import NoDataForStock
+import re
 
 
 SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100'        
@@ -36,7 +37,7 @@ class Filing(object):
         
     def latest_metric_value(self, metric):
         return self._document.latest_metric_value(metric)
-        
+
     @classmethod
     def from_xbrl_url(cls, filing_date, xbrl_url):
         document = XBRLDocument(xbrl_url=xbrl_url)
@@ -124,7 +125,11 @@ class HTMLEdgarDriver(object):
             except AttributeError:
                 continue
             else:
-                break
+                if not re.match(pattern='\d\.xml$', string=xbrl_link):
+                    # we don't want files of the form 'jcp-20120504_def.xml'
+                    continue
+                else:
+                    break
         xbrl_url = urljoin('http://www.sec.gov', xbrl_link)
         filing = Filing.from_xbrl_url(filing_date=filing_date, xbrl_url=xbrl_url)
         return filing 
