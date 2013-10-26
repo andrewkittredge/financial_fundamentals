@@ -16,6 +16,7 @@ from financial_fundamentals.exceptions import NoDataForStock,\
     ExternalRequestFailed, NoDataForStockOnDate
 import warnings
 import numpy as np
+from numbers import Number
 
 def _load_from_cache(cache,
                     indexes={},
@@ -127,7 +128,7 @@ class FinancialDataRangesCache(object):
             # Not looking for more than one date at a time because the set
             # operation will set multiple dates per call.
             cached_value = self._database.get(symbol=symbol, date=date)
-            if cached_value:
+            if isinstance(cached_value, Number):
                 yield cached_value
             else:
                 yield self._get_set(symbol=symbol, date=date)
