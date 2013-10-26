@@ -15,10 +15,8 @@ class MongoTestCase(unittest.TestCase):
     def setUp(self):
         client = pymongo.MongoClient(self.host, self.port)
         self.db = client.test_database
+        self.db.prices.drop()
         self.collection = self.db.prices
-
-    def tearDown(self):
-        self.collection.drop()
 
 
 class MongoIntervalSeriesTestCase(MongoTestCase, IntervalseriesTestCase):
