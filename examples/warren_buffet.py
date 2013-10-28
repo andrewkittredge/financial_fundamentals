@@ -92,7 +92,8 @@ def buy_low_sell_high(start=datetime(2013, 6, 1, tzinfo=pytz.UTC),
     earnings[earnings < 0] = 0 # negative p/e's don't make sense.
     warren_buffet = BuysLowSellsHigh(earnings=earnings)
     prices = price_cache().load_from_cache(stocks=stocks, start=start, end=end)
-    warren_buffet.run(prices)
+    results = warren_buffet.run(prices)
+    return results
 
 
 if __name__ == '__main__':
