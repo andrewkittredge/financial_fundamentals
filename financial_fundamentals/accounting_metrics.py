@@ -20,29 +20,32 @@ class QuarterlyEPS(EPS):
 
 class AnnualEPS(EPS):
     filing_type = '10-K'
-
-class BookValuePerShare(object):
-    shares_outstanding_element = 'us-gaap:WeightedAverageNumberOfSharesOutstandingBasic'
-    @classmethod
-    def value_from_filing(cls, filing):
-        return cls._book_value(filing) / _value_from_filing(filing, 
-                                                cls.shares_outstanding_element)
-    @classmethod
-    def _book_value(cls, filing):
-        assets = cls._assets(filing)
-        liabilities = cls._liabilities(filing)
-        return assets - liabilities
-    
-    assets_element = 'Assets'
-    @classmethod
-    def _assets(cls, filing):
-        return _value_from_filing(filing, cls.assets_element)
-    
-    liabilities_element = 'Liabilities'    
-    @classmethod
-    def _liabilities(cls, filing):
-        return _value_from_filing(filing, cls.liabilities_element)
-    
+#===============================================================================
+# Book Value per-share is currently broken.
+#
+# class BookValuePerShare(object):
+#     shares_outstanding_element = 'us-gaap:WeightedAverageNumberOfSharesOutstandingBasic'
+#     @classmethod
+#     def value_from_filing(cls, filing):
+#         return cls._book_value(filing) / _value_from_filing(filing, 
+#                                                 cls.shares_outstanding_element)
+#     @classmethod
+#     def _book_value(cls, filing):
+#         assets = cls._assets(filing)
+#         liabilities = cls._liabilities(filing)
+#         return assets - liabilities
+#     
+#     assets_element = 'Assets'
+#     @classmethod
+#     def _assets(cls, filing):
+#         return _value_from_filing(filing, cls.assets_element)
+#     
+#     liabilities_element = 'Liabilities'    
+#     @classmethod
+#     def _liabilities(cls, filing):
+#         return _value_from_filing(filing, cls.liabilities_element)
+#     
+#===============================================================================
     
 class AccountingMetricGetter(object):
     def __init__(self, metric, filing_getter):
