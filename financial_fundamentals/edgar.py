@@ -12,6 +12,8 @@ import blist
 from financial_fundamentals.xbrl import XBRLDocument
 from financial_fundamentals.exceptions import NoDataForStock
 import re
+import time
+from requests.exceptions import ConnectionError
 
 
 SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100'        
@@ -98,8 +100,7 @@ class HTMLEdgarDriver(object):
         
         '''
         search_url = SEARCH_URL.format(symbol=symbol, filing_type=filing_type)
-        search_page = requests.get(search_url).text
-        search_results_page = BeautifulSoup(search_page)
+        search_results_page = cls.get_edgar_soup(url=search_url)
         xbrl_rows = [row for row in 
                      search_results_page.findAll('tr') if 
                      row.find(text=re.compile('Interactive Data'))]
@@ -114,7 +115,7 @@ class HTMLEdgarDriver(object):
         http://www.sec.gov/Archives/edgar/data/320193/000119312513300670/0001193125-13-300670-index.htm
         
         '''
-        filing_page = BeautifulSoup(requests.get(document_page_url).text)
+        filing_page = cls.get_edgar_soup(url=document_page_url)
         period_of_report_elem = filing_page.find('div', text='Filing Date')
         filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
         filing_date = datetime.date(*map(int, filing_date.split('-')))
@@ -132,7 +133,23 @@ class HTMLEdgarDriver(object):
                     break
         xbrl_url = urljoin('http://www.sec.gov', xbrl_link)
         filing = Filing.from_xbrl_url(filing_date=filing_date, xbrl_url=xbrl_url)
-        return filing 
+        return filing
+    
+    @staticmethod
+    def get_edgar_soup(url):
+        '''backoff retry.'''
+        wait = 0
+        while wait < 5:
+            try:
+                response = requests.get(url)
+            except ConnectionError:
+                print 'ConnectionError, trying again in ', wait
+                time.sleep(wait)
+                wait += 1
+            else:
+                return BeautifulSoup(response.text)
+        else:
+            raise
 
 if __name__ == '__main__':
     print HTMLEdgarDriver.get_filing(ticker='GOOG', 
