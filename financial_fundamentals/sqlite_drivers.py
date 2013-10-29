@@ -55,10 +55,10 @@ class SQLiteTimeseries(SQLiteDriver):
         '''return all stored symbol metric values for dates between min(dates) and max(dates).
         
         '''
+        qry = self._get_query.format(self._table)
+        args = [symbol, min(dates), max(dates), self._metric]
         with self._connection:
-            qry = self._get_query.format(self._table)
             cursor = self._connection.cursor()
-            args = [symbol, min(dates), max(dates), self._metric]
             cursor.execute(qry, args)
             for row in cursor.fetchall():
                 yield row['date'], np.float(row['value'])
@@ -66,8 +66,8 @@ class SQLiteTimeseries(SQLiteDriver):
     _insert_query = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
     def set(self, symbol, records):
         '''records is a sequence of date, value items.'''
+        query = self._insert_query.format(self._table)
         with self._connection:
-            query = self._insert_query.format(self._table)
             self._connection.executemany(query, ((symbol, date, self._metric, value)
                                                  for date, value in records))
 
