@@ -5,49 +5,19 @@ Created on Jan 26, 2013
 '''
 import requests
 from BeautifulSoup import BeautifulSoup
-import re
 import datetime
 from urlparse import urljoin
 import blist
-from financial_fundamentals.xbrl import XBRLDocument
 from financial_fundamentals.exceptions import NoDataForStock
-import re
 import time
 from requests.exceptions import ConnectionError
+from financial_fundamentals.sec_filing import Filing
+import re
 
 
 SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100'        
 class XBRLNotAvailable(NoDataForStock):
     pass
-
-class Filing(object):
-    '''wrap filings.'''
-    def __init__(self, filing_date, document, next_filing=None):
-        self._document = document
-        self.date = filing_date
-        self.next_filing = next_filing
-
-    @classmethod
-    def key_func(cls, filing_or_date):
-        #assert False
-        if isinstance(filing_or_date, cls):
-            return filing_or_date.date
-        elif isinstance(filing_or_date, datetime.datetime):
-            return filing_or_date.date()
-        else:
-            return filing_or_date
-        
-    def latest_metric_value(self, metric):
-        return self._document.latest_metric_value(metric)
-
-    @classmethod
-    def from_xbrl_url(cls, filing_date, xbrl_url):
-        document = XBRLDocument(xbrl_url=xbrl_url)
-        return cls(filing_date=filing_date, document=document)
-    
-    def __repr__(self):
-        return '{} - {}'.format(self.__class__, self.date)
-
 
 class HTMLEdgarDriver(object):
     '''Get documents from Edgar by parsing the HTML.'''
@@ -59,8 +29,7 @@ class HTMLEdgarDriver(object):
             prior to the date.
         '''
         filings = cls._ticker_filings.setdefault(ticker,
-                                                 cls._get_sorted_filings(ticker, 
-                                                                      filing_type)
+                                    cls._get_sorted_filings(ticker, filing_type)
                                                  )
         if filings:
             filing_before_index = filings.bisect_right(date_after) - 1
@@ -84,7 +53,7 @@ class HTMLEdgarDriver(object):
     def _get_sorted_filings(cls, ticker, filing_type):
         '''Step 1 Search for the ticker and filing type,
             generate the urls for the document pages that have interactive data/XBRL.
-        Step 2 : Get the document pages, on each page find the url for the XBRL document.
+           Step 2 : Get the document pages, on each page find the url for the XBRL document.
             Return a blist sorted by filing date.
         '''
         filings = blist.sortedlist(key=Filing.key_func)
