@@ -4,11 +4,10 @@ Created on Jan 26, 2013
 @author: akittredge
 '''
 import datetime
-import pytz
+from financial_fundamentals.edgar import HTMLEdgarDriver
                       
 class AccountingMetric(object):
     '''Parent class for accounting metrics.'''
-
 
 class EPS(AccountingMetric):
     xbrl_tags = ['us-gaap:EarningsPerShareDiluted',
@@ -48,7 +47,10 @@ class AnnualEPS(EPS):
 #===============================================================================
     
 class AccountingMetricGetter(object):
-    def __init__(self, metric, filing_getter):
+    '''Connect accounting metrics to sources of accounting metrics.
+    
+    '''
+    def __init__(self, metric, filing_getter=HTMLEdgarDriver):
         self._metric = metric
         self._filing_getter = filing_getter
         self.metric_name  = self._metric.name
