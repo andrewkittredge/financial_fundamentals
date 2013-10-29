@@ -56,8 +56,8 @@ class HTMLEdgarDriver(object):
            Step 2 : Get the document pages, on each page find the url for the XBRL document.
             Return a blist sorted by filing date.
         '''
-        def key_func(cls, filing_or_date):
-            if isinstance(filing_or_date, cls):
+        def key_func(filing_or_date):
+            if isinstance(filing_or_date, Filing):
                 return filing_or_date.date
             elif isinstance(filing_or_date, datetime.datetime):
                 return filing_or_date.date()
