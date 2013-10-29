@@ -18,40 +18,11 @@ import warnings
 import numpy as np
 from numbers import Number
 
-def _load_from_cache(cache,
-                    indexes={},
-                    stocks=[],
-                    start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
-                    end=datetime.datetime.now().replace(tzinfo=pytz.utc),
-                    ):
-    '''Equivalent to zipline.utils.factory.load_from_yahoo.
-    
-    '''
-    assert start <= end, 'start must be before end'
-    datetime_index = get_trading_days(start=start, end=end)
-    df = pd.DataFrame(index=datetime_index)
-    python_datetimes = list(datetime_index.to_pydatetime())
-    for symbol in stocks:
-        # there's probably a clever way of avoiding building a dictionary.
-        try:
-            date_values = cache.get(symbol=symbol, dates=python_datetimes)
-            values = {date : value for date, value in date_values}
-        except NoDataForStock:
-            warnings.warn('No data for {}'.format(symbol))
-        except ExternalRequestFailed as e:
-            warnings.warn('Getting data for {} failed {}'.format(symbol,
-                                                                 e.message))
-        else:
-            series = pd.Series(values)
-            df[symbol] = series
-        
-    for name, ticker in indexes.iteritems():
-        values = {date : value for date, value in cache.get(symbol=ticker, 
-                                                           dates=python_datetimes)}
-        df[name] = pd.Series(values)
-    return df
 
 class FinancialDataTimeSeriesCache(object):
+    '''Cache data such as prices that are accurate at some instant in time.
+    
+    '''
     def __init__(self, gets_data, database):
         self._get_data = gets_data
         self._database = database
@@ -110,11 +81,47 @@ class FinancialDataTimeSeriesCache(object):
         mongo_driver = MongoTimeseries.price_db(host=mongo_host, port=mongo_port)
         cache = cls(gets_data=prices.get_prices_from_yahoo, database=mongo_driver)
         return cache
-
-    load_from_cache = _load_from_cache
+    
+    def load_from_cache(self,
+                        indexes={},
+                        stocks=[],
+                        start=pd.datetime(1990, 1, 1, 0, 0, 0, 0, pytz.utc),
+                        end=datetime.datetime.now().replace(tzinfo=pytz.utc),
+                        ):
+        '''Equivalent to zipline.utils.factory.load_from_yahoo.
+        
+        '''
+        assert start <= end, 'start must be before end'
+        datetime_index = get_trading_days(start=start, end=end)
+        df = pd.DataFrame(index=datetime_index)
+        python_datetimes = list(datetime_index.to_pydatetime())
+        for symbol in stocks:
+            # there's probably a clever way of avoiding building a dictionary.
+            try:
+                date_values = self.get(symbol=symbol, dates=python_datetimes)
+                values = {date : value for date, value in date_values}
+            except NoDataForStock:
+                warnings.warn('No data for {}'.format(symbol))
+            except ExternalRequestFailed as e:
+                warnings.warn('Getting data for {} failed {}'.format(symbol,
+                                                                     e.message))
+            else:
+                series = pd.Series(values)
+                df[symbol] = series
+            
+        for name, ticker in indexes.iteritems():
+            values = {date : value for date, value in self.get(symbol=ticker, 
+                                                               dates=python_datetimes)}
+            df[name] = pd.Series(values)
+        return df
 
     
 class FinancialIntervalCache(object):
+    '''Cache data that is accurate for the interval between to dates.
+    For example earnings from SEC filings are `in effect` for an entire quarter,
+    until the next filing is submitted.
+    
+    '''
     def __init__(self, get_data, database):
         self._get_data = get_data
         self._database = database
