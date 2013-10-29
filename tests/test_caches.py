@@ -15,7 +15,7 @@ from financial_fundamentals.accounting_metrics import QuarterlyEPS,\
     AccountingMetricGetter
 import sqlite3
 from financial_fundamentals.sqlite_drivers import SQLiteIntervalseries
-from financial_fundamentals.time_series_cache import FinancialDataRangesCache
+from financial_fundamentals.time_series_cache import FinancialIntervalCache
 from financial_fundamentals.edgar import HTMLEdgarDriver
 
 
@@ -61,7 +61,7 @@ class TestFundamentalsCache(unittest.TestCase):
                                      metric=metric.name)
         metric_getter = AccountingMetricGetter(metric=metric, 
                                            filing_getter=HTMLEdgarDriver)
-        cache = FinancialDataRangesCache(get_data=metric_getter.get_data, database=driver)
+        cache = FinancialIntervalCache(get_data=metric_getter.get_data, database=driver)
         dates = {datetime.datetime(2010, 2, 17)}
         list(cache.get(symbol, dates=dates))
         

@@ -1,7 +1,7 @@
 import pymongo
 from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
     MongoTimeseries
-from financial_fundamentals.time_series_cache import FinancialDataRangesCache,\
+from financial_fundamentals.time_series_cache import FinancialIntervalCache,\
     FinancialDataTimeSeriesCache
 from financial_fundamentals.prices import get_prices_from_yahoo
 
@@ -20,7 +20,7 @@ def mongo_fundamentals_cache(metric, mongo_host='localhost', mongo_port=27017,
                          metric=metric.name)
     metric_getter = AccountingMetricGetter(metric=metric,
                                            filing_getter=filing_getter)
-    cache = FinancialDataRangesCache(get_data=metric_getter.get_data, database=db)
+    cache = FinancialIntervalCache(get_data=metric_getter.get_data, database=db)
     return cache
 
 def mongo_price_cache(mongo_host='localhost', mongo_port=27017):
@@ -51,6 +51,6 @@ def sqlite_fundamentals_cache(metric,
     metric_getter = AccountingMetricGetter(metric=metric, 
                                            filing_getter=filing_getter)
     
-    cache = FinancialDataRangesCache(get_data=metric_getter.get_data, 
+    cache = FinancialIntervalCache(get_data=metric_getter.get_data, 
                                      database=driver)
     return cache

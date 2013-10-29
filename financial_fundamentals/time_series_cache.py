@@ -112,9 +112,9 @@ class FinancialDataTimeSeriesCache(object):
         return cache
 
     load_from_cache = _load_from_cache
+
     
-    
-class FinancialDataRangesCache(object):
+class FinancialIntervalCache(object):
     def __init__(self, get_data, database):
         self._get_data = get_data
         self._database = database
