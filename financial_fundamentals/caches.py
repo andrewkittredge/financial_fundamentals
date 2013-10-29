@@ -16,7 +16,7 @@ def mongo_fundamentals_cache(metric, mongo_host='localhost', mongo_port=27017,
                              filing_getter=HTMLEdgarDriver):
     mongo_client = pymongo.MongoClient(mongo_host, mongo_port)
     mongo_collection = mongo_client.fundamentals.fundamentals
-    db = MongoIntervalseries(collection=mongo_collection, 
+    db = MongoIntervalseries(mongo_collection=mongo_collection, 
                          metric=metric.name)
     metric_getter = AccountingMetricGetter(metric=metric,
                                            filing_getter=filing_getter)
