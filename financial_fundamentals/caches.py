@@ -39,7 +39,7 @@ def sqlite_price_cache(db_file_path=DEFAULT_PRICE_PATH):
     return FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=db_file_path, 
                                                                  table='prices', 
                                                                  metric='Adj Close')
-    
+
 DEFAULT_FUNDAMENTALS_PATH = os.path.join(os.path.expanduser('~'), '.fundamentals.sqlite')
 def sqlite_fundamentals_cache(metric, 
                               db_file_path=DEFAULT_FUNDAMENTALS_PATH, 

@@ -20,7 +20,7 @@ from numbers import Number
 
 
 class FinancialDataTimeSeriesCache(object):
-    '''Cache data such as prices that are accurate at some instant in time.
+    '''Cache data, such as prices, that are accurate at some instant in time.
     
     '''
     def __init__(self, gets_data, database):

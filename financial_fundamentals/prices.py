@@ -46,4 +46,3 @@ def _wrapped_get_data_yahoo(symbol, start, end):
         if re.match(r'after \d tries, Yahoo! did not return a 200 for url',
                     e.message):
             raise ExternalRequestFailed(e.message)
-    
