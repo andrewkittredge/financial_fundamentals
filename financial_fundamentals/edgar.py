@@ -77,7 +77,7 @@ class HTMLEdgarDriver(object):
         
         '''
         search_url = SEARCH_URL.format(symbol=symbol, filing_type=filing_type)
-        search_results_page = cls.get_edgar_soup(url=search_url)
+        search_results_page = get_edgar_soup(url=search_url)
         xbrl_rows = [row for row in 
                      search_results_page.findAll('tr') if 
                      row.find(text=re.compile('Interactive Data'))]
@@ -92,7 +92,7 @@ class HTMLEdgarDriver(object):
         http://www.sec.gov/Archives/edgar/data/320193/000119312513300670/0001193125-13-300670-index.htm
         
         '''
-        filing_page = cls.get_edgar_soup(url=document_page_url)
+        filing_page = get_edgar_soup(url=document_page_url)
         period_of_report_elem = filing_page.find('div', text='Filing Date')
         filing_date = period_of_report_elem.findNext('div', {'class' : 'info'}).text
         filing_date = datetime.date(*map(int, filing_date.split('-')))
@@ -111,22 +111,26 @@ class HTMLEdgarDriver(object):
         xbrl_url = urljoin('http://www.sec.gov', xbrl_link)
         filing = Filing.from_xbrl_url(filing_date=filing_date, xbrl_url=xbrl_url)
         return filing
+
+
+def get_edgar_soup(url):
+    response = get(url)
+    return BeautifulSoup(response.text)
+
+def get(url):
+    '''requests.get wrapped in a backoff retry.
     
-    @staticmethod
-    def get_edgar_soup(url):
-        '''backoff retry.'''
-        wait = 0
-        while wait < 5:
-            try:
-                response = requests.get(url)
-            except ConnectionError:
-                print 'ConnectionError, trying again in ', wait
-                time.sleep(wait)
-                wait += 1
-            else:
-                return BeautifulSoup(response.text)
-        else:
-            raise
+    '''
+    wait = 0
+    while wait < 5:
+        try:
+            return requests.get(url)
+        except ConnectionError:
+            print 'ConnectionError, trying again in ', wait
+            time.sleep(wait)
+            wait += 1
+    else:
+        raise
 
 if __name__ == '__main__':
     print HTMLEdgarDriver.get_filing(ticker='GOOG', 
