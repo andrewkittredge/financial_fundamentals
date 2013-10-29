@@ -154,7 +154,7 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
     def setUp(self):
         super(MongoDataRangesIntegrationTestCase, self).setUp()
         self.mock_getter = mock.Mock()
-        self.mongo_db = MongoIntervalseries(collection=self.collection,
+        self.mongo_db = MongoIntervalseries(mongo_collection=self.collection,
                                             metric=self.metric)
         self.cache = FinancialIntervalCache(get_data=self.mock_getter, 
                                               database=self.mongo_db)
