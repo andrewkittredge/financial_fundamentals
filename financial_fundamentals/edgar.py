@@ -56,12 +56,20 @@ class HTMLEdgarDriver(object):
            Step 2 : Get the document pages, on each page find the url for the XBRL document.
             Return a blist sorted by filing date.
         '''
-        filings = blist.sortedlist(key=Filing.key_func)
+        def key_func(cls, filing_or_date):
+            if isinstance(filing_or_date, cls):
+                return filing_or_date.date
+            elif isinstance(filing_or_date, datetime.datetime):
+                return filing_or_date.date()
+            else:
+                return filing_or_date
+        filings = blist.sortedlist(key=key_func)
         document_page_urls = cls._get_document_page_urls(ticker, filing_type)
         for url in document_page_urls:
             filing = cls._get_filing_from_document_page(url)
             filings.add(filing)
         return filings
+    
 
     @classmethod
     def _get_document_page_urls(cls, symbol, filing_type):

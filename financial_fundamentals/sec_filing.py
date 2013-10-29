@@ -3,7 +3,7 @@ Created on Oct 28, 2013
 
 @author: akittredge
 '''
-import datetime
+
 from financial_fundamentals.xbrl import XBRLDocument
 
 
@@ -14,21 +14,12 @@ class Filing(object):
         self.date = filing_date
         self.next_filing = next_filing
 
-    @classmethod
-    def key_func(cls, filing_or_date):
-        #assert False
-        if isinstance(filing_or_date, cls):
-            return filing_or_date.date
-        elif isinstance(filing_or_date, datetime.datetime):
-            return filing_or_date.date()
-        else:
-            return filing_or_date
-        
     def latest_metric_value(self, metric):
         return self._document.latest_metric_value(metric)
 
     @classmethod
     def from_xbrl_url(cls, filing_date, xbrl_url):
+        '''constructor.'''
         document = XBRLDocument(xbrl_url=xbrl_url)
         return cls(filing_date=filing_date, document=document)
     
