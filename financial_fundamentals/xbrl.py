@@ -6,8 +6,8 @@ Created on Oct 8, 2013
 
 import dateutil
 import xmltodict
-import requests
 from financial_fundamentals.exceptions import NoDataForStockOnDate
+
 
 class TimeSpanContext(object):
     '''Encapsulate a time span XBRL context.'''
@@ -39,7 +39,8 @@ class XBRLDocument(object):
     @property
     def _xbrl_dict(self):
         if not self._xbrl_dict_:
-            doc_text = requests.get(self._xbrl_url).text
+            from financial_fundamentals import edgar # avoiding circular import
+            doc_text = edgar.get(self._xbrl_url).text
             xml_dict = xmltodict.parse(doc_text)
             self._xbrl_dict_ = _find_node(xml_dict, 'xbrl')
         return self._xbrl_dict_
