@@ -5,6 +5,7 @@ Created on Oct 28, 2013
 '''
 
 from financial_fundamentals.xbrl import XBRLDocument
+import datetime
 
 
 class Filing(object):
@@ -16,6 +17,17 @@ class Filing(object):
 
     def latest_metric_value(self, metric):
         return self._document.latest_metric_value(metric)
+    
+    @property
+    def first_tradable_date(self):
+        '''the day after this filing was made public.
+        Assuming that filings are submitted after the close on the filing date.
+        '''
+        return self.date + datetime.timedelta(days=1)
+        
+    @property
+    def last_tradable_date(self):
+        return self.next_filing and self.next_filing.date
 
     @classmethod
     def from_xbrl_url(cls, filing_date, xbrl_url):

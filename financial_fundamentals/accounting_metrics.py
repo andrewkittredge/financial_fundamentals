@@ -56,6 +56,10 @@ class AccountingMetricGetter(object):
         self.metric_name  = self._metric.name
         
     def get_data(self, symbol, date):
+        '''Return a metric bracketed by first trading day on which it would have been tradable
+        and day of the next filing.
+        
+        '''
         date = datetime.date(date.year, date.month, date.day)
         filing = self._filing_getter.get_filing(ticker=symbol, 
                                                 filing_type=self._metric.filing_type, 
@@ -64,6 +68,6 @@ class AccountingMetricGetter(object):
         assert filing.date < date
         if filing.next_filing:
             assert date <= filing.next_filing.date
-        return (filing.date, 
+        return (filing.first_tradable_date, 
                 filing.latest_metric_value(self._metric), 
-                filing.next_filing and filing.next_filing.date)
+                filing.last_tradable_date)
