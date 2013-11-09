@@ -7,7 +7,7 @@ Created on Sep 12, 2013
 
 import unittest
 from financial_fundamentals.time_series_cache import FinancialDataTimeSeriesCache,\
-    FinancialDataRangesCache
+    FinancialIntervalCache
 import datetime
 import pytz
 import pandas as pd
@@ -56,12 +56,14 @@ class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
         cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
                                                                       table='price', 
                                                                       metric='Adj Close')
-        symbols = ['GOOG', 'AAPL']  
+        start = datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
+        end = datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)
+        symbols = ['GOOG', 'AAPL']
         df = cache.load_from_cache(stocks=symbols,
-                                   start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
-                                   end=datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC))
+                                   start=start, 
+                                   end=end)
         self.assertEqual(df['GOOG'][datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 695.25)
-        self.assertEqual(df['AAPL'][datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)], 522.16)
+        self.assertEqual(df['AAPL'][datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)], 519.13)
 
     def test_sqlite(self):
         cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
@@ -126,7 +128,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
     def setUp(self):
         self.mock_data_getter = mock.Mock()
         self.mock_db = mock.Mock()
-        self.date_range_cache = FinancialDataRangesCache(get_data=self.mock_data_getter,
+        self.date_range_cache = FinancialIntervalCache(get_data=self.mock_data_getter,
                                                          database=self.mock_db)
         
     def test_get_cache_hit(self):
@@ -154,9 +156,9 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
     def setUp(self):
         super(MongoDataRangesIntegrationTestCase, self).setUp()
         self.mock_getter = mock.Mock()
-        self.mongo_db = MongoIntervalseries(collection=self.collection,
+        self.mongo_db = MongoIntervalseries(mongo_collection=self.collection,
                                             metric=self.metric)
-        self.cache = FinancialDataRangesCache(get_data=self.mock_getter, 
+        self.cache = FinancialIntervalCache(get_data=self.mock_getter, 
                                               database=self.mongo_db)
         
     def test_init(self):

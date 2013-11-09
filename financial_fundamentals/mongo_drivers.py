@@ -7,14 +7,13 @@ import pymongo
 import pytz
 import numpy as np
 
-
-
-class MongoTimeseries(object):
+class MongoCache(object):
     def __init__(self, mongo_collection, metric):
         self._ensure_indexes(mongo_collection)
         self._collection = mongo_collection
         self._metric = metric
-        
+
+class MongoTimeseries(MongoCache):
     @classmethod
     def _ensure_indexes(cls, collection):
         collection.ensure_index([('date', pymongo.ASCENDING), 
@@ -26,7 +25,8 @@ class MongoTimeseries(object):
                                          'date' : {'$in' : dates},
                                          }).sort('symbol')
         for record in records:
-            yield self._beautify_record(record, self._metric)
+            yield (record['date'].replace(tzinfo=pytz.UTC), 
+                   np.float(record[self._metric]))
         
     def set(self, symbol, records):
         for date, value in records:
@@ -41,21 +41,9 @@ class MongoTimeseries(object):
         client = pymongo.MongoClient(host, port)
         collection = client.prices.prices
         return cls(collection, 'price')
-    
-    @staticmethod
-    def _beautify_record(record, metric):
-        '''Cast metric to np.float and make date tz-aware.
-        
-        '''
-
-        return record['date'].replace(tzinfo=pytz.UTC), np.float(record[metric])
         
         
 class MongoIntervalseries(MongoTimeseries):
-    def __init__(self, collection, metric): 
-        super(MongoIntervalseries, self).__init__(mongo_collection=collection,
-                                                  metric=metric)
-    
     @classmethod
     def _ensure_indexes(cls, collection):
         collection.ensure_index([('start', pymongo.ASCENDING),
@@ -82,4 +70,3 @@ class MongoIntervalseries(MongoTimeseries):
                 'end' : end,
                 self._metric : value}
         self._collection.insert(data)
-
