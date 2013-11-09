@@ -56,12 +56,14 @@ class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
         cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
                                                                       table='price', 
                                                                       metric='Adj Close')
-        symbols = ['GOOG', 'AAPL']  
+        start = datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
+        end = datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)
+        symbols = ['GOOG', 'AAPL']
         df = cache.load_from_cache(stocks=symbols,
-                                   start=datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC), 
-                                   end=datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC))
+                                   start=start, 
+                                   end=end)
         self.assertEqual(df['GOOG'][datetime.datetime(2012, 12, 3, tzinfo=pytz.UTC)], 695.25)
-        self.assertEqual(df['AAPL'][datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)], 522.16)
+        self.assertEqual(df['AAPL'][datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)], 519.13)
 
     def test_sqlite(self):
         cache = FinancialDataTimeSeriesCache.build_sqlite_price_cache(sqlite_file_path=':memory:', 
