@@ -8,78 +8,139 @@ import dateutil
 import xmltodict
 from financial_fundamentals.exceptions import NoDataForStockOnDate
 
+class XBRLMetricParams(object):
+    '''Bundle the parameters sufficient to extract a metric from an xbrl document.
+    
+    '''
+    def __init__(self, possible_tags, context_type):
+        self.possible_tags = possible_tags
+        self.context_type = context_type
 
-class TimeSpanContext(object):
+        
+class DurationContext(object):
     '''Encapsulate a time span XBRL context.'''
+    characteristic_key = 'startDate'
     def __init__(self, start_date, end_date):
         self.start_date = start_date
         self.end_date = end_date
-        
+
+    @property
+    def sort_key(self):
+        return self.start_date
+    
     def __repr__(self):
         return '{}(start_date={}, end_date={})'.format(self.__class__, 
                                                        self.start_date, 
                                                        self.end_date)
-        
+
     @classmethod
     def from_period(cls, period):
-        start_date = dateutil.parser.parse(_find_node(xml_dict=period, 
-                                                      key='startDate')
+        start_date = dateutil.parser.parse(XBRLDocument.find_node(xml_dict=period, 
+                                                                   key='startDate')
                                            ).date()
-        end_date = dateutil.parser.parse(_find_node(xml_dict=period, 
-                                                    key='endDate')
+        end_date = dateutil.parser.parse(XBRLDocument.find_node(xml_dict=period,
+                                                                 key='endDate')
                                          ).date()
         return cls(start_date, end_date)
 
+class InstantContext(object):
+    characteristic_key = 'instant'
+    def __init__(self, instant):
+        self.instant = instant
+
+    @property
+    def sort_key(self):
+        return self.instant
+        
+    def __repr__(self):
+        return '{}(instant={}'.format(self.__class__, self.instant)
+    
+    @classmethod
+    def from_period(cls, period):
+        instant = dateutil.parser.parse(XBRLDocument.find_node(xml_dict=period, 
+                                                               key='instant')
+                                        ).date()
+        return cls(instant=instant)
+
 class XBRLDocument(object):
     '''wrapper for XBRL documents, lazily downloads XBRL text.'''
-    def __init__(self, xbrl_url):
+    def __init__(self, xbrl_url, gets_xbrl):
         self._xbrl_url = xbrl_url
         self._xbrl_dict_ = None
+        self._contexts = {}
+        self._get_xbrl = gets_xbrl
+        
 
     @property
     def _xbrl_dict(self):
         if not self._xbrl_dict_:
-            from financial_fundamentals import edgar # avoiding circular import
-            doc_text = edgar.get(self._xbrl_url).text
+            doc_text = self._get_xbrl(self._xbrl_url)
             xml_dict = xmltodict.parse(doc_text)
-            self._xbrl_dict_ = _find_node(xml_dict, 'xbrl')
+            self._xbrl_dict_ = self.find_node(xml_dict, 'xbrl')
         return self._xbrl_dict_
 
-    def time_span_contexts_dict(self):
-        contexts = {}
-        for context in _find_node(xml_dict=self._xbrl_dict, key='context'):
-            try:
-                period = _find_node(context, 'period')
-                _find_node(xml_dict=period, key='startDate')
-            except KeyError:
-                continue
-            else:
-                contexts[context['@id']] = TimeSpanContext.from_period(period)
+    def contexts(self, context_type):
+        contexts = self._contexts.get(context_type, {})
+        if not contexts:
+            for context in self.find_node(xml_dict=self._xbrl_dict, key='context'):
+                try:
+                    period = self.find_node(xml_dict=context, key='period')
+                    self.find_node(xml_dict=period, key=context_type.characteristic_key)
+                except KeyError:
+                    continue
+                else:
+                    contexts[context['@id']] = context_type.from_period(period)
+            self._contexts[context_type] = contexts
         return contexts
 
-    def latest_metric_value(self, metric):
-        context_dates = self.time_span_contexts_dict()
-        for tag in metric.xbrl_tags:
+    def _latest_metric_value(self, possible_tags, contexts):
+        '''metric_params is a list of possible xbrl tags.
+        
+        '''
+        for tag in possible_tags:
             try:
                 metric_nodes = self._xbrl_dict[tag]
             except KeyError:
                 continue
             else:
+                if type(metric_nodes) != list:
+                    metric_nodes = [metric_nodes]
                 break
         else:
-            raise MetricNodeNotFound('Did not find any of {} in the document @ '\
-                                     .format(metric.xbrl_tags, self._xbrl_url))
+            raise MetricNodeNotFound('Did not find any of {} in the document @ {}'\
+                                     .format(possible_tags, self._xbrl_url))
+        def key_func(value):
+            context_ref_id = value['@contextRef']
+            context = contexts[context_ref_id]
+            return context.sort_key
+
         metric_node = sorted(metric_nodes,
-                             key=lambda value : context_dates[value['@contextRef']].start_date, 
+                             key=key_func, 
                              reverse=True)[0]
         return float(metric_node['#text'])
     
+    def latest_metric_value(self, metric_params):
+        contexts = self.contexts(context_type=metric_params.context_type)
+        return self._latest_metric_value(possible_tags=metric_params.possible_tags,
+                                         contexts=contexts)
+
+    @staticmethod
+    def find_node(xml_dict, key):
+        '''OMG I hate XML.'''
+        try:
+            return xml_dict[key]
+        except KeyError:
+            return xml_dict['xbrli:{}'.format(key)]
+        
+    @classmethod
+    def gets_XBRL_from_edgar(cls, xbrl_url):
+        from financial_fundamentals import edgar
+        return cls(xbrl_url=xbrl_url, gets_xbrl=edgar.get)
+    
+    @classmethod
+    def gets_XBRL_locally(cls, file_path):
+        return cls(xbrl_url=file_path, 
+                   gets_xbrl=lambda file_path : open(file_path).read())
+
 class MetricNodeNotFound(NoDataForStockOnDate):
     pass
-
-def _find_node(xml_dict, key):
-    '''OMG I hate XML.'''
-    try:
-        return xml_dict[key]
-    except KeyError:
-        return xml_dict['xbrli:{}'.format(key)]

@@ -15,8 +15,8 @@ class Filing(object):
         self.date = filing_date
         self.next_filing = next_filing
 
-    def latest_metric_value(self, metric):
-        return self._document.latest_metric_value(metric)
+    def latest_metric_value(self, metric_params):
+        return self._document.latest_metric_value(metric_params)
     
     @property
     def first_tradable_date(self):
@@ -32,7 +32,7 @@ class Filing(object):
     @classmethod
     def from_xbrl_url(cls, filing_date, xbrl_url):
         '''constructor.'''
-        document = XBRLDocument(xbrl_url=xbrl_url)
+        document = XBRLDocument.gets_XBRL_from_edgar (xbrl_url=xbrl_url)
         return cls(filing_date=filing_date, document=document)
     
     def __repr__(self):

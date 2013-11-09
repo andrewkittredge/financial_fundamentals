@@ -115,7 +115,7 @@ class HTMLEdgarDriver(object):
 
 def get_edgar_soup(url):
     response = get(url)
-    return BeautifulSoup(response.text)
+    return BeautifulSoup(response)
 
 def get(url):
     '''requests.get wrapped in a backoff retry.
@@ -124,7 +124,7 @@ def get(url):
     wait = 0
     while wait < 5:
         try:
-            return requests.get(url)
+            return requests.get(url).text
         except ConnectionError:
             print 'ConnectionError, trying again in ', wait
             time.sleep(wait)

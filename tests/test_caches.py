@@ -11,13 +11,13 @@ from financial_fundamentals.caches import sqlite_fundamentals_cache
 import pytz
 from tests.infrastructure import turn_on_request_caching
 import datetime
-from financial_fundamentals.accounting_metrics import QuarterlyEPS,\
-    AccountingMetricGetter
+from financial_fundamentals.accounting_metrics import AccountingMetricGetter
 import sqlite3
 from financial_fundamentals.sqlite_drivers import SQLiteIntervalseries
 from financial_fundamentals.time_series_cache import FinancialIntervalCache
 from financial_fundamentals.edgar import HTMLEdgarDriver
 
+QUARTERLY_EPS = accounting_metrics.EPS.quarterly()
 
 class InitMethodTests(unittest.TestCase):
     @classmethod
@@ -35,7 +35,7 @@ class InitMethodTests(unittest.TestCase):
                                848.55, delta=.1)
         
     def test_sqlite_fundamentals_cache(self):
-        cache = sqlite_fundamentals_cache(metric=accounting_metrics.QuarterlyEPS, 
+        cache = sqlite_fundamentals_cache(metric=QUARTERLY_EPS, 
                                           db_file_path=':memory:')
         symbol = 'GOOG'
         dates = [datetime.datetime(2011, 12, 1, tzinfo=pytz.UTC),
@@ -53,7 +53,7 @@ class TestFundamentalsCache(unittest.TestCase):
         
     def test_border_behavior(self):
         '''Fundamentals were being inserted twice because of an off by one error.'''
-        metric = accounting_metrics.QuarterlyEPS
+        metric = QUARTERLY_EPS
         symbol = 'CSCO'
         connection = sqlite3.connect(':memory:', detect_types=sqlite3.PARSE_DECLTYPES)
         driver = SQLiteIntervalseries(connection=connection,
@@ -77,7 +77,7 @@ class EndToEndTests(unittest.TestCase):
         turn_on_request_caching()
         start, end = (datetime.date(2013, 1, 1), 
                       datetime.date(2013, 8, 1))
-        cache = sqlite_fundamentals_cache(metric=QuarterlyEPS, 
+        cache = sqlite_fundamentals_cache(metric=QUARTERLY_EPS, 
                                           db_file_path=':memory:')
         cache.load_from_cache(stocks=['GOOG', 'AAPL'], 
                               start=start, 
