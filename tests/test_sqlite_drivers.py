@@ -137,9 +137,12 @@ class SQLiteIntervalseriesTestCase(SQLiteTestCase, IntervalseriesTestCase):
     table = 'fundamentals'
     def setUp(self):
         super(SQLiteIntervalseriesTestCase, self).setUp()
-        self.cache = SQLiteIntervalseries(connection=self.connection, 
-                                           table=self.table, 
-                                           metric=self.metric)
+        self.cache = self.build_cache(metric=self.metric)
+        
+    def build_cache(self, metric):
+        return SQLiteIntervalseries(connection=self.connection,
+                                    table=self.table,
+                                    metric=metric)
         
     def find_in_database(self, start, end, symbol):
         qry = 'SELECT * FROM {} WHERE metric = ? AND start <= ? AND end <= ? AND symbol = ?'.format(self.table)

@@ -110,8 +110,8 @@ class SQLiteIntervalseries(SQLiteDriver):
                                  value))
         self._detect_duplicates()
             
-    duplicate_query = ('select * from {table_name} where rowid not in ' 
-                       '(select max(rowid) from {table_name}\n'
+    duplicate_query = ('select * from {table_name} where rowid not in \n' 
+                       '(select max(rowid) from {table_name} '
                        'group by start, end, symbol, metric);')
     
     def _detect_duplicates(self):

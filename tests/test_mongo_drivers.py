@@ -10,20 +10,26 @@ from financial_fundamentals.mongo_drivers import MongoIntervalseries,\
     MongoTimeseries
 import pytz
 from tests.infrastructure import IntervalseriesTestCase
+
 class MongoTestCase(unittest.TestCase):
     host, port = 'localhost', 27017
     def setUp(self):
         client = pymongo.MongoClient(self.host, self.port)
-        self.db = client.test_database
+        self.db = client.test
         self.db.prices.drop()
-        self.collection = self.db.prices
+        self.collection = self.db[self.collection_name]
+        self.collection.drop()
 
 
 class MongoIntervalSeriesTestCase(MongoTestCase, IntervalseriesTestCase):
+    collection_name = 'fundamentals'
     def setUp(self):
         super(MongoIntervalSeriesTestCase, self).setUp()
-        self.cache = MongoIntervalseries(self.collection, 
-                                         self.metric)
+        self.cache = self.build_cache(metric=self.metric)
+
+        
+    def build_cache(self, metric):
+        return MongoIntervalseries(self.collection, metric)
     
     def find_in_database(self, start, end, symbol):
         db_record = self.collection.find({'start' : start,
@@ -33,12 +39,23 @@ class MongoIntervalSeriesTestCase(MongoTestCase, IntervalseriesTestCase):
         
     def insert_into_database(self, data):
         self.collection.insert(data)
+    
+    def update_database(self, data, query):
+        self.collection.update(spec=query,
+                               document={'$set' : data},
+                               upsert=True)
+        
+    
         
 class MongoTimeSeriesTestCase(MongoTestCase):
     metric = 'price'
+    collection_name = 'prices'
     def setUp(self):
         super(MongoTimeSeriesTestCase, self).setUp()
-        self.cache = MongoTimeseries(self.collection, self.metric)
+        self.cache = self.build_cache(metric=self.metric)
+        
+    def build_cache(self, metric):
+        return MongoTimeseries(self.collection, metric)
         
     def test_get(self):
         import datetime
@@ -65,4 +82,3 @@ class MongoTimeSeriesTestCase(MongoTestCase):
         test_data = self.collection.find({'symbol' : symbol})[0]
         self.assertEqual(test_data[metric], price)
         self.assertEqual(test_data['symbol'], symbol)
-        

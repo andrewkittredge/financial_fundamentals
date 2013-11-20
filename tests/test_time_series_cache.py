@@ -21,6 +21,7 @@ from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import numpy as np
 
 class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
+    collection_name = 'price'
     @classmethod
     def setUpClass(cls):
         turn_on_request_caching()
@@ -153,6 +154,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
 
 class MongoDataRangesIntegrationTestCase(MongoTestCase):
     metric = 'price'
+    collection_name = 'price'
     def setUp(self):
         super(MongoDataRangesIntegrationTestCase, self).setUp()
         self.mock_getter = mock.Mock()

@@ -51,22 +51,25 @@ class MongoIntervalseries(MongoTimeseries):
                                  ('symbol', pymongo.ASCENDING)])
         
     def get(self, symbol, date):
-        cursor = self._collection.find({'symbol' : symbol,
+        document = self._collection.find_one({'symbol' : symbol,
                                         'start' : {'$lte' : date},
                                         '$or' : [{'end' : {'$gte' : date}},
                                                   {'end' : None}],
                                         }
                                          )
-        try:
-            record = cursor.next()
-        except StopIteration:
-            return None
-        else:
-            return np.float(record[self._metric])
+        if document:
+            metric_value = document.get(self._metric)
+            if metric_value:
+                return np.float(metric_value)
+        return None
                     
     def set_interval(self, symbol, start, end, value):
-        data = {'symbol' : symbol,
+        spec = {'symbol' : symbol,
                 'start' : start,
                 'end' : end,
-                self._metric : value}
-        self._collection.insert(data)
+                } 
+        data = {self._metric : value}
+        self._collection.update(spec=spec,
+                                document={'$set' : data},
+                                upsert=True)
+        

@@ -79,7 +79,7 @@ class EndToEndTests(unittest.TestCase):
                       datetime.date(2013, 8, 1))
         cache = sqlite_fundamentals_cache(metric=QUARTERLY_EPS, 
                                           db_file_path=':memory:')
-        cache.load_from_cache(stocks=['GOOG', 'AAPL'], 
+        cache.load_from_cache(stocks=['GOOG', 'AAPL'],
                               start=start, 
                               end=end)
 
