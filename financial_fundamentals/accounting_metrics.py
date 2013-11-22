@@ -7,6 +7,7 @@ import datetime
 from financial_fundamentals.edgar import HTMLEdgarDriver
 from financial_fundamentals.xbrl import XBRLMetricParams, DurationContext,\
     InstantContext
+from financial_fundamentals.exceptions import NoDataForStockOnDate
                       
 class AccountingMetric(object):
     '''Parent class for accounting metrics.'''
@@ -55,8 +56,11 @@ class BookValuePerShare(AccountingMetric):
     def value_from_filing(cls, filing):
         assets = cls._value_from_filing(filing, possible_tags=cls._assets_tags)
         liabilities = cls._value_from_filing(filing, possible_tags=cls._liabilities_tags)
-        shares_outstanding = cls._value_from_filing(filing, possible_tags=cls._shares_outstanding_tags)                    
-        return (assets - liabilities) / shares_outstanding
+        shares_outstanding = cls._value_from_filing(filing, possible_tags=cls._shares_outstanding_tags)
+        try:               
+            return (assets - liabilities) / shares_outstanding
+        except ZeroDivisionError:
+            raise NoDataForStockOnDate('0 shares outstanding.')
 
 class AccountingMetricGetter(object):
     '''Connect accounting metrics to sources of accounting metrics.
