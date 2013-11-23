@@ -19,6 +19,7 @@ from tests.test_mongo_drivers import MongoTestCase
 from tests.infrastructure import turn_on_request_caching
 from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 import numpy as np
+from financial_fundamentals.exceptions import NoDataForStockForRange
 
 class FinancialDataTimeSeriesCacheTestCase(MongoTestCase, unittest.TestCase):
     collection_name = 'price'
@@ -150,6 +151,22 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         self.mock_db.get.return_value = None
         self.date_range_cache.get(symbol=symbol, dates=[date]).next()
         mock_get_set.assert_called_once_with(symbol=symbol, date=date)
+        
+    def test_no_data_exception(self):
+        symbol = 'XYZ'
+        start_date, end_date = datetime.datetime(2012, 9, 1, tzinfo=pytz.UTC), datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
+        mock_getter = mock.Mock()
+        mock_getter.side_effect = NoDataForStockForRange(start=start_date,
+                                                         end=end_date)
+        self.date_range_cache._get_data = mock_getter
+        mock_database = mock.Mock()
+        self.date_range_cache._database = mock_database
+        value = self.date_range_cache._get_set(symbol=symbol, date=None) 
+        self.assertEqual(value, 'NaN')
+        mock_database.set_interval.assert_called_with(symbol=symbol,
+                                                      start=start_date,
+                                                      end=end_date,
+                                                      value='NaN')
 
 
 class MongoDataRangesIntegrationTestCase(MongoTestCase):
@@ -181,5 +198,5 @@ class MongoDataRangesIntegrationTestCase(MongoTestCase):
                                                'symbol' : symbol}).next()['price'], price)
         
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(FinancialDataTimeSeriesCacheTestCase)
+    suite = unittest.TestLoader().loadTestsFromTestCase(FinancialDataRangesCacheTestCase)
     unittest.TextTestRunner().run(suite)

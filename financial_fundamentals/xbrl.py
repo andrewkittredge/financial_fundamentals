@@ -6,7 +6,8 @@ Created on Oct 8, 2013
 
 import dateutil
 import xmltodict
-from financial_fundamentals.exceptions import NoDataForStockOnDate
+from financial_fundamentals.exceptions import NoDataForStockOnDate,\
+    ValueNotInFilingDocument
 
 class XBRLMetricParams(object):
     '''Bundle the parameters sufficient to extract a metric from an xbrl document.
@@ -142,5 +143,5 @@ class XBRLDocument(object):
         return cls(xbrl_url=file_path, 
                    gets_xbrl=lambda file_path : open(file_path).read())
 
-class MetricNodeNotFound(NoDataForStockOnDate):
+class MetricNodeNotFound(ValueNotInFilingDocument):
     pass

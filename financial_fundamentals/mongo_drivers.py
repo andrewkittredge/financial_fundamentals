@@ -51,12 +51,18 @@ class MongoIntervalseries(MongoTimeseries):
                                  ('symbol', pymongo.ASCENDING)])
         
     def get(self, symbol, date):
-        document = self._collection.find_one({'symbol' : symbol,
-                                        'start' : {'$lte' : date},
-                                        '$or' : [{'end' : {'$gte' : date}},
-                                                  {'end' : None}],
-                                        }
-                                         )
+        qry = {'symbol' : symbol,
+                '$and' : [{'$or' : [{'start' : {'$lte' : date}},
+                                    {'start' : None}
+                                    ]
+                           },
+                          {'$or' : [{'end' : {'$gte' : date}},
+                                    {'end' : None}
+                                   ]
+                           },
+                          ]
+                                            }
+        document = self._collection.find_one(qry)
         if document:
             metric_value = document.get(self._metric)
             if metric_value:

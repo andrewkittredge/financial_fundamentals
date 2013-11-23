@@ -13,7 +13,7 @@ from financial_fundamentals.sqlite_drivers import SQLiteTimeseries
 
 from financial_fundamentals.mongo_drivers import MongoTimeseries
 from financial_fundamentals.exceptions import NoDataForStock,\
-    ExternalRequestFailed, NoDataForStockOnDate
+    ExternalRequestFailed, NoDataForStockOnDate, NoDataForStockForRange
 import warnings
 import numpy as np
 from numbers import Number
@@ -142,7 +142,12 @@ class FinancialIntervalCache(object):
     
     def _get_set(self, symbol, date):
         print 'cache miss', symbol, date
-        start, value, end = self._get_data(symbol=symbol, date=date)
+        try:
+            start, value, end = self._get_data(symbol=symbol, date=date)
+        except NoDataForStockForRange as e:
+            value = 'NaN'
+            start = e.start
+            end = e.end
         start = start and datetime.datetime(start.year, 
                                             start.month, 
                                             start.day, 
@@ -169,7 +174,7 @@ class FinancialIntervalCache(object):
             try:
                 values = self.get(symbol=symbol, dates=python_datetimes)
                 series = pd.Series(data=values, index=datetime_index)
-            except (NoDataForStock, NoDataForStockOnDate):
+            except (NoDataForStock, NoDataForStockOnDate) as e:
                 warnings.warn('No data for {}'.format(symbol))
             except ExternalRequestFailed as e:
                 warnings.warn('Getting data for {} failed {}'.format(symbol,

@@ -4,10 +4,13 @@ Created on Jan 26, 2013
 @author: akittredge
 '''
 import datetime
-from financial_fundamentals.edgar import HTMLEdgarDriver
+from financial_fundamentals.edgar import HTMLEdgarDriver,\
+    FilingNotAvailableForDate, NoFilingsNotAvailable
 from financial_fundamentals.xbrl import XBRLMetricParams, DurationContext,\
     InstantContext
-from financial_fundamentals.exceptions import NoDataForStockOnDate
+from financial_fundamentals.exceptions import ValueNotInFilingDocument, NoDataForStockForRange
+import numpy as np
+                      
                       
 class AccountingMetric(object):
     '''Parent class for accounting metrics.'''
@@ -60,7 +63,8 @@ class BookValuePerShare(AccountingMetric):
         try:               
             return (assets - liabilities) / shares_outstanding
         except ZeroDivisionError:
-            raise NoDataForStockOnDate('0 shares outstanding.')
+            return np.NaN
+
 
 class AccountingMetricGetter(object):
     '''Connect accounting metrics to sources of accounting metrics.
@@ -69,7 +73,7 @@ class AccountingMetricGetter(object):
     def __init__(self, metric, filing_getter=HTMLEdgarDriver):
         self._metric = metric
         self._filing_getter = filing_getter
-        self.metric_name  = self._metric.name
+        self.metric_name = self._metric.name
         
     def get_data(self, symbol, date):
         '''Return a metric bracketed by first trading day on which it would have been tradable
@@ -77,15 +81,24 @@ class AccountingMetricGetter(object):
         
         '''
         date = datetime.date(date.year, date.month, date.day)
-        filing = self._filing_getter.get_filing(ticker=symbol, 
-                                                filing_type=self._metric.filing_type, 
-                                                date_after=date)
-        
+        try:
+            filing = self._filing_getter.get_filing(ticker=symbol, 
+                                                    filing_type=self._metric.filing_type, 
+                                                    date_after=date)
+        except FilingNotAvailableForDate as e:
+            raise NoDataForStockForRange(start=e.start,
+                                         end=e.end)
+        except NoFilingsNotAvailable:
+            raise NoDataForStockForRange()
+
         assert filing.date < date
         if filing.next_filing:
             assert date <= filing.next_filing.date
-
-        metric_value = self._metric.value_from_filing(filing)
+        try:
+            metric_value = self._metric.value_from_filing(filing)
+        except ValueNotInFilingDocument:
+            raise NoDataForStockForRange(start=filing.first_tradable_date, 
+                                         end=filing.last_tradable_date)
         return (filing.first_tradable_date,
                 metric_value, 
                 filing.last_tradable_date)

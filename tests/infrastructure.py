@@ -84,4 +84,10 @@ class IntervalseriesTestCase(object):
         self.assertEqual(bvps, bvps_cache.get(symbol=symbol, date=bracketed_date))
         self.assertEqual(eps, eps_cache.get(symbol=symbol, date=bracketed_date))
 
-        
+    def test_no_start_date(self):
+        symbol = 'XYZ'
+        interval_end = datetime.datetime(2012, 12, 1)
+        cache = self.build_cache(metric='book_value_per_share')
+        cache.set_interval(symbol=symbol, start=None, end=interval_end, value=np.NaN)
+        value = cache.get(symbol=symbol, date=datetime.datetime(2012, 11, 30))
+        self.assertTrue(np.isnan(value))
