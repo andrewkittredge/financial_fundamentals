@@ -62,7 +62,7 @@ class MongoIntervalseries(MongoTimeseries):
                            },
                           {self._metric : {'$exists' : True}},
                           ]
-                                            }
+               }
         document = self._collection.find_one(qry)
         return document and np.float(document[self._metric])
                     

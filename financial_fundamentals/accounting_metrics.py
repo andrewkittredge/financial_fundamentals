@@ -55,13 +55,19 @@ class BookValuePerShare(AccountingMetric):
     _assets_tags = ['us-gaap:Assets']
     _liabilities_tags = ['us-gaap:Liabilities']
     _shares_outstanding_tags = ['dei:EntityCommonStockSharesOutstanding']
+    _stockholders_equity_tags = ['us-gaap:StockholdersEquity']
     @classmethod
     def value_from_filing(cls, filing):
-        assets = cls._value_from_filing(filing, possible_tags=cls._assets_tags)
-        liabilities = cls._value_from_filing(filing, possible_tags=cls._liabilities_tags)
+        try:
+            assets = cls._value_from_filing(filing, possible_tags=cls._assets_tags)
+            liabilities = cls._value_from_filing(filing, possible_tags=cls._liabilities_tags)
+        except ValueNotInFilingDocument:
+            book_value = cls._value_from_filing(filing, possible_tags=cls._stockholders_equity_tags)
+        else:
+            book_value = assets - liabilities
         shares_outstanding = cls._value_from_filing(filing, possible_tags=cls._shares_outstanding_tags)
         try:               
-            return (assets - liabilities) / shares_outstanding
+            return book_value / shares_outstanding
         except ZeroDivisionError:
             return np.NaN
 

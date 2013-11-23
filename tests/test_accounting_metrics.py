@@ -54,6 +54,15 @@ class TestBookValuePerShare(unittest.TestCase):
         book_value_per_share = BookValuePerShare.value_from_filing(filing)
         self.assertAlmostEqual(book_value_per_share, sec_value, places=1)
         
+    def test_GOOG_shareholders_equity(self):
+        sec_value = 994.77
+        doc_path = os.path.join(TEST_DOCS_DIR, 'goog-20120630.xml')
+        xbrl_document = XBRLDocument.gets_XBRL_locally(file_path=doc_path)
+        filing = Filing(filing_date=None, document=xbrl_document, next_filing=None)
+        book_value_per_share = BookValuePerShare.value_from_filing(filing)
+        self.assertAlmostEqual(book_value_per_share, sec_value, places=1)
+        
+        
 class TestExceptions(unittest.TestCase):
     def test_metric_not_in_filing(self):
         mock_filing_getter = mock.Mock()
@@ -86,11 +95,12 @@ class TestExceptions(unittest.TestCase):
             getter.get_data(symbol=None, date=datetime.date(2012, 12, 1))
         self.assertIsNone(cm.exception.start)
         self.assertIsNone(cm.exception.end)
+        
             
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    suite.addTest(TestExceptions('test_no_filings_available'))
+    suite.addTest(TestBookValuePerShare('test_GOOG_shareholders_equity'))
     unittest.TextTestRunner().run(suite)
     
         
