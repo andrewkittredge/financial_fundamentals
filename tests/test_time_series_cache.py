@@ -162,7 +162,7 @@ class FinancialDataRangesCacheTestCase(unittest.TestCase):
         mock_database = mock.Mock()
         self.date_range_cache._database = mock_database
         value = self.date_range_cache._get_set(symbol=symbol, date=None) 
-        self.assertEqual(value, 'NaN')
+        self.assertTrue(np.isnan(value))
         mock_database.set_interval.assert_called_with(symbol=symbol,
                                                       start=start_date,
                                                       end=end_date,

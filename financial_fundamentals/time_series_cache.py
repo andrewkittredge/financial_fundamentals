@@ -160,7 +160,7 @@ class FinancialIntervalCache(object):
                                     start=start, 
                                     end=end, 
                                     value=value)
-        return value
+        return np.float(value)
 
     def load_from_cache(self, 
                         stocks, 
