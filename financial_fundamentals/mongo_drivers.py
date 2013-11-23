@@ -60,13 +60,12 @@ class MongoIntervalseries(MongoTimeseries):
                                     {'end' : None}
                                    ]
                            },
+                          {self._metric : {'$exists' : True}},
                           ]
                                             }
         document = self._collection.find_one(qry)
         if document:
-            metric_value = document.get(self._metric)
-            if metric_value:
-                return np.float(metric_value)
+            return np.float(document[self._metric])
         return None
                     
     def set_interval(self, symbol, start, end, value):
