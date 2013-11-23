@@ -64,9 +64,7 @@ class MongoIntervalseries(MongoTimeseries):
                           ]
                                             }
         document = self._collection.find_one(qry)
-        if document:
-            return np.float(document[self._metric])
-        return None
+        return document and np.float(document[self._metric])
                     
     def set_interval(self, symbol, start, end, value):
         spec = {'symbol' : symbol,
