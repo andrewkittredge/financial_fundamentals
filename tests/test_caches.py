@@ -75,13 +75,15 @@ class TestFundamentalsCache(unittest.TestCase):
 class EndToEndTests(unittest.TestCase):
     def test_quarterly_eps_sqlite(self):
         turn_on_request_caching()
-        start, end = (datetime.date(2013, 1, 1), 
-                      datetime.date(2013, 8, 1))
+        start, end = (datetime.datetime(2013, 1, 1, tzinfo=pytz.UTC), 
+                      datetime.datetime(2013, 1, 2, tzinfo=pytz.UTC))
         cache = sqlite_fundamentals_cache(metric=QUARTERLY_EPS, 
                                           db_file_path=':memory:')
-        cache.load_from_cache(stocks=['GOOG', 'AAPL'],
-                              start=start, 
-                              end=end)
+        data = cache.load_from_cache(stocks=['GOOG', 'AAPL'],
+                                     start=start, 
+                                     end=end)
+        self.assertEqual(data['GOOG'][0], 6.53)
+    
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
