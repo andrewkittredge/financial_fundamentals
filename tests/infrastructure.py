@@ -27,15 +27,15 @@ class IntervalseriesTestCase(object):
 
     def test_cache_hit(self):
         symbol = 'ABC'
-        interval_start = datetime.datetime(2012, 12, 1)
-        interval_end = datetime.datetime(2012, 12, 31)
+        interval_start = datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
+        interval_end = datetime.datetime(2012, 12, 31, tzinfo=pytz.UTC)
         price = 100.
         data = {'symbol' : symbol,
                 'start' : interval_start,
                 'end' : interval_end,
                 self.metric : price}
         self.insert_into_database(data)
-        date = datetime.datetime(2012, 12, 14, tzinfo=pytz.UTC)
+        date = datetime.datetime(2012, 12, 1, tzinfo=pytz.UTC)
         cache_value = self.cache.get(symbol=symbol, date=date)
         self.assertEqual(cache_value, np.float(price))
 

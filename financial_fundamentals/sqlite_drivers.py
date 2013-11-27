@@ -80,12 +80,13 @@ class SQLiteIntervalseries(SQLiteDriver):
                         metric text, 
                         value real)
                     '''
-    _get_qry = '''SELECT value FROM {} \
-                    WHERE metric = ? AND symbol = ? AND (start <= ? OR start IS NULL) AND (? <= end OR end IS NULL)\
-                    '''
+    _get_qry = ('SELECT value FROM {} '
+                'WHERE metric = ? AND symbol = ? '
+                'AND (start <= ? OR start IS NULL) '
+                'AND (? <= end OR end IS NULL)')
+                    
     def get(self, symbol, date):
         '''return the metric value of symbol on date.'''
-        date = date.replace(tzinfo=None) # can't figure out timezones in sqlite.
         qry = self._get_qry.format(self._table)
         cursor = self._connection.cursor()
         cursor.execute(qry, (self._metric,
