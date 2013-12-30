@@ -3,42 +3,28 @@ Created on Dec 3, 2013
 
 @author: akittredge
 '''
-import pandas as pd
+
+from functools import wraps
 
 
- 
-class VectorCache(object):
-    def __init__(self, data_store):
-        self._data_store = data_store
 
-    def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__,
-                               self._data_store)
+def get_data_store():
+    pass
 
-    def get(self, metric, identifiers, index, get_external_data):
-        data, misses = self._get_cache_data(metric=metric, 
-                                            identifiers=identifiers, 
-                                            index=index)
-        if misses:
-            new_data = get_external_data(misses)
-            if not new_data.empty:
-                self._data_store.set(metric=metric, data=new_data)
-                data = data.merge(new_data, left_index=True, right_index=True)
-        return data
+def vector_cache(metric):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(required_data):
+            data_store = get_data_store()
+            cached_data = data_store.get(metric=metric,
+                                         df=required_data)
+            missing_data = cached_data.isnull()
+            if missing_data:
+                new_data = f(missing_data)
+                data_store.set(new_data)
+                cached_data.update(new_data)
+            return cached_data
+        return wrapper
+    return decorator
 
-    def _get_cache_data(self, metric, identifiers, index):
-        data = pd.DataFrame(index=index)
-        uncached_data = {}
-        for identifier in identifiers:
-            df = self._data_store.get(identifier=identifier,
-                                             metric=metric,
-                                             index=index)
-            if df.empty:
-                uncached_data[identifier] = index
-            else:
-                df.rename(columns={metric : identifier}, inplace=True)
-                missing_dates = index - df.index
-                if len(missing_dates) != 0:
-                    uncached_data[identifier] = missing_dates
-                data = data.merge(df, left_index=True, right_index=True)
-        return data, uncached_data
+

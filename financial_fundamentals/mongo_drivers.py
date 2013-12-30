@@ -19,7 +19,7 @@ class MongoDataStore(object):
         self._collection = collection
         
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, 
+        return '{}(collection={})'.format(self.__class__.__name__, 
                                self._collection.full_name)
         
     @classmethod
@@ -28,21 +28,26 @@ class MongoDataStore(object):
                                  ('symbol', pymongo.ASCENDING)])
         collection.ensure_index('symbol')
         
-    def get(self, identifier, metric, index):
-        query = {'identifier' : identifier,
+    def get(self, metric, df):
+        '''Populate a DataFrame.
+        
+        '''
+        identifiers = list(df.columns)
+        start, stop = df.index[0], df.index[-1]
+        query = {'identifier' : {'$in' : identifiers},
                  metric : {'$exists' : True},
-                 'date' : {'$gte' : index[0],
-                           '$lte' : index[-1]},
+                 'date' : {'$gte' : start,
+                           '$lte' : stop},
                  }
         df = mongo.read_frame(qry=query,
                               columns=['date', metric],
                               collection=self._collection,
                               index_col='date')
-        df.rename(columns={metric : identifier}, inplace=True)
         return df
 
-    def set(self, metric, data):
-        mongo.write_frame(metric=metric, 
-                          frame=data, 
+    def set(self, metric, df):
+        mongo.write_frame(metric=metric,
+                          df=df,
                           collection=self._collection)
+        
 

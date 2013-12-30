@@ -15,13 +15,15 @@ def read_frame(qry, columns, collection, index_col=None):
         result.set_index(index_col, inplace=True)
     return result
 
-def write_frame(metric, frame, collection):
+def write_frame(metric, df, collection):
     docs = []
-    index_name = frame.index.name # date?
+    index_name = df.index.name # date?
     assert index_name
-    for column in frame:
+    metric = df.name
+    assert metric
+    for column in df:
         doc = ({'identifier' : column,
                 index_name : index_value,
-                metric : value} for index_value, value in frame[column].iteritems())
+                metric : value} for index_value, value in df[column].iteritems())
         docs.extend(doc)
     collection.insert(docs)
