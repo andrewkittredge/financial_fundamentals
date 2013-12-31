@@ -5,7 +5,7 @@ Created on Dec 3, 2013
 '''
 
 from functools import wraps
-
+import pandas as pd
 
 
 def get_data_store():
@@ -19,12 +19,13 @@ def vector_cache(metric):
             cached_data = data_store.get(metric=metric,
                                          df=required_data)
             missing_data = cached_data.isnull()
-            if missing_data:
-                new_data = f(missing_data)
-                data_store.set(new_data)
-                cached_data.update(new_data)
+            if missing_data.any().any():
+                required_data = pd.DataFrame(index=missing_data.index,
+                                             columns=missing_data.columns)
+                new_data = f(required_data=required_data)
+                if new_data.any().any():
+                    data_store.set(metric=metric, df=new_data)
+                    cached_data.update(new_data)
             return cached_data
         return wrapper
     return decorator
-
-

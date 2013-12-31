@@ -39,10 +39,11 @@ class MongoDataStore(object):
                  'date' : {'$gte' : start,
                            '$lte' : stop},
                  }
-        df = mongo.read_frame(qry=query,
-                              columns=['date', metric],
-                              collection=self._collection,
-                              index_col='date')
+        store_data = mongo.read_frame(qry=query,
+                                      columns=['date', metric],
+                                      collection=self._collection,
+                                      index_col='date')
+        df.update(store_data)
         return df
 
     def set(self, metric, df):

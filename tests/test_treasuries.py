@@ -18,15 +18,13 @@ class TestTreasuryCache(unittest.TestCase):
         ff_vc.get_data_store = lambda : store
     
     @mock.patch('zipline.data.treasuries.get_treasury_data', 
-                new_callable=ff_treasury_yields.get_treasury_data)
+                return_value=ff_treasury_yields.get_treasury_data())
     def test_successfull_get(self, *args, **kwargs):
         required_data = pd.DataFrame(columns=['1year', '5year'], 
-                                     index=pd.date_range('2012-12-1', '2012-12-30')
+                                     index=pd.date_range('1997-1-3', '1997-1-6')
                                      )
         data = treasuries.get_yields(required_data=required_data)
         
-
-
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

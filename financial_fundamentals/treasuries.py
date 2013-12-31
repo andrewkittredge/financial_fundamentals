@@ -17,6 +17,6 @@ def get_yields(required_data):
     '''
     treasury_data = zipline_treasuries.get_treasury_data()
     treasury_yield = pd.DataFrame.from_records(data=treasury_data)
-    treasury_yield.set_index('date')
+    treasury_yield.set_index('date', inplace=True)
     required_data.update(treasury_yield)
     return required_data

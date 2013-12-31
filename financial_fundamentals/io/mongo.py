@@ -17,10 +17,7 @@ def read_frame(qry, columns, collection, index_col=None):
 
 def write_frame(metric, df, collection):
     docs = []
-    index_name = df.index.name # date?
-    assert index_name
-    metric = df.name
-    assert metric
+    index_name = 'date'
     for column in df:
         doc = ({'identifier' : column,
                 index_name : index_value,
