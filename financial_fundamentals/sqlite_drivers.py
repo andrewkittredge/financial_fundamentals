@@ -53,7 +53,7 @@ class SQLiteTimeseries(SQLiteDriver):
                 '''
     def get(self, symbol, dates):
         '''return all stored symbol metric values for dates between min(dates) and max(dates).
-        
+
         '''
         qry = self._get_query.format(self._table)
         args = [symbol, min(dates), max(dates), self._metric]
@@ -119,7 +119,7 @@ class SQLiteIntervalseries(SQLiteDriver):
         with self._connection:
             qry = self.duplicate_query.format(table_name=self._table)
             assert not self._connection.execute(qry).fetchone()
-        
+
 
 def _tz_aware_timestamp_adapter(val):
     '''from https://gist.github.com/acdha/6655391'''

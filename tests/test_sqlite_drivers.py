@@ -45,8 +45,10 @@ class SQLiteTimeseriesTestCase(SQLiteTestCase):
         test_vals = defaultdict(dict)
         for symbol, date in symbol_date_combos:
             price = random.randint(0, 1000)
-            self.connection.execute('INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'\
-                                    .format(self.table), (symbol, date, self.metric, price))
+            qry = 'INSERT INTO {} (symbol, date, metric, value) VALUES (?, ?, ?, ?)'
+            qry = qry.format(self.table)
+            args = (symbol, date, self.metric, price)
+            self.connection.execute(qry, args)
             test_vals[symbol][date] = price
         return test_vals
         

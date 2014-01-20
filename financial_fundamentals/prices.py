@@ -12,6 +12,7 @@ import pytz
 from financial_fundamentals.exceptions import NoDataForStock,\
     ExternalRequestFailed
 import re
+from financial_fundamentals import vector_cache
 
 SYMBOLS_YAHOO_DOES_NOT_HAVE = {'CVH',
                                'HNZ',
@@ -19,7 +20,14 @@ SYMBOLS_YAHOO_DOES_NOT_HAVE = {'CVH',
                                'S',
                                }
 
-
+@vector_cache(metric='price')
+def get_prices(required_data, type_of_price='Adj Close'):
+    
+    start, end = required_data.index[0], required_data.index[-1]
+    return get_data_yahoo(symbols=required_data,
+                          start=start,
+                          end=end)
+    
 def get_prices_from_yahoo(symbol, dates, type_of_price='Adj Close'):
     '''Yields date, value pairs.'''
     if symbol in SYMBOLS_YAHOO_DOES_NOT_HAVE:

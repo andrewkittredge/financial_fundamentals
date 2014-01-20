@@ -17,3 +17,6 @@ class YahooPricesTestCase(unittest.TestCase):
                           lambda : _wrapped_get_data_yahoo(symbol='BMC', 
                                                            start=start, 
                                                            end=end))
+        
+
+        
