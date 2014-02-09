@@ -3,13 +3,12 @@ Created on Jan 26, 2013
 
 @author: akittredge
 '''
-import datetime
-from financial_fundamentals.edgar import HTMLEdgarDriver,\
-    FilingNotAvailableForDate, NoFilingsNotAvailable
+
 from financial_fundamentals.xbrl import XBRLMetricParams, DurationContext,\
     InstantContext
 from financial_fundamentals.exceptions import ValueNotInFilingDocument, NoDataForStockForRange
 import numpy as np
+import vector_cache
                       
                       
 class AccountingMetric(object):
@@ -71,40 +70,28 @@ class BookValuePerShare(AccountingMetric):
         except ZeroDivisionError:
             return np.NaN
 
+import pandas as pd
+import financial_fundamentals.edgar as edgar
 
-class AccountingMetricGetter(object):
-    '''Connect accounting metrics to sources of accounting metrics.
-    
-    '''
-    def __init__(self, metric, filing_getter=HTMLEdgarDriver):
-        self._metric = metric
-        self._filing_getter = filing_getter
-        self.metric_name = self._metric.name
-        
-    def get_data(self, symbol, date):
-        '''Return a metric bracketed by first trading day on which it would have been tradable
-        and day of the next filing.
-        
-        '''
-        date = datetime.date(date.year, date.month, date.day)
-        try:
-            filing = self._filing_getter.get_filing(ticker=symbol, 
-                                                    filing_type=self._metric.filing_type, 
-                                                    date_after=date)
-        except FilingNotAvailableForDate as e:
-            raise NoDataForStockForRange(start=e.start,
-                                         end=e.end)
-        except NoFilingsNotAvailable:
-            raise NoDataForStockForRange()
+@vector_cache.vector_cache
+def earnings_per_share(required_data):
+    start, end = required_data.index[0], required_data.index[-1]
+    for symbol, values in required_data.iteritems():
+        filings = edgar.get_filings(symbol=symbol, 
+                                    filing_type='10-Q')
+        filings = filings[filings.bisect(start) - 1:filings.bisect(end)]
+        for filing in filings:
+            value = EPS.value_from_filing(filing)
+            interval_start = filing.first_tradable_date
+            interval_end = filing.next_filing and filing.next_filing.first_tradable_date
+            values[interval_start:interval_end] = value
+    return required_data
 
-        assert filing.date < date
-        if filing.next_filing:
-            assert date <= filing.next_filing.date
-        try:
-            metric_value = self._metric.value_from_filing(filing)
-        except ValueNotInFilingDocument:
-            raise NoDataForStockForRange(start=filing.first_tradable_date, 
-                                         end=filing.last_tradable_date)
-        return (filing.first_tradable_date,
-                metric_value, 
-                filing.last_tradable_date)
+
+if __name__ == '__main__':
+    import requests_cache
+    requests_cache.install_cache(cache_name='edgar')
+    required_data = pd.DataFrame(columns=['GOOG', 'YHOO'], 
+                                 index=pd.date_range('2012-1-1', '2012-12-31'))
+    eps = earnings_per_share(required_data)
+    print eps
