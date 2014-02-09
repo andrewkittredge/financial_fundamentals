@@ -6,8 +6,7 @@ Created on Oct 8, 2013
 
 import dateutil
 import xmltodict
-from financial_fundamentals.exceptions import NoDataForStockOnDate,\
-    ValueNotInFilingDocument
+from financial_fundamentals.exceptions import ValueNotInFilingDocument
 
 class XBRLMetricParams(object):
     '''Bundle the parameters sufficient to extract a metric from an xbrl document.
@@ -36,12 +35,10 @@ class DurationContext(object):
 
     @classmethod
     def from_period(cls, period):
-        start_date = dateutil.parser.parse(XBRLDocument.find_node(xml_dict=period, 
-                                                                   key='startDate')
-                                           ).date()
-        end_date = dateutil.parser.parse(XBRLDocument.find_node(xml_dict=period,
-                                                                 key='endDate')
-                                         ).date()
+        start_node = XBRLDocument.find_node(xml_dict=period, key='startDate')
+        start_date = dateutil.parser.parse(start_node).date()
+        end_node = XBRLDocument.find_node(xml_dict=period, key='endDate')
+        end_date = dateutil.parser.parse(end_node).date()
         return cls(start_date, end_date)
 
 class InstantContext(object):
@@ -58,9 +55,8 @@ class InstantContext(object):
     
     @classmethod
     def from_period(cls, period):
-        instant = dateutil.parser.parse(XBRLDocument.find_node(xml_dict=period, 
-                                                               key='instant')
-                                        ).date()
+        node = XBRLDocument.find_node(xml_dict=period, key='instant')
+        instant = dateutil.parser.parse(node).date()
         return cls(instant=instant)
 
 class XBRLDocument(object):
@@ -71,7 +67,6 @@ class XBRLDocument(object):
         self._contexts = {}
         self._get_xbrl = gets_xbrl
         
-
     @property
     def _xbrl_dict(self):
         if not self._xbrl_dict_:
@@ -83,7 +78,8 @@ class XBRLDocument(object):
     def contexts(self, context_type):
         contexts = self._contexts.get(context_type, {})
         if not contexts:
-            for context in self.find_node(xml_dict=self._xbrl_dict, key='context'):
+            context_nodes = self.find_node(xml_dict=self._xbrl_dict, key='context')
+            for context in context_nodes:
                 try:
                     period = self.find_node(xml_dict=context, key='period')
                     self.find_node(xml_dict=period, key=context_type.characteristic_key)
