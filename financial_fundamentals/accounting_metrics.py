@@ -27,16 +27,7 @@ class AccountingMetric(object):
         xbrl_params = cls._build_xbrl_params(possible_tags)
         metric_value = filing.latest_metric_value(xbrl_params)
         return metric_value
-    
-    @classmethod
-    def quarterly(cls):
-        return cls(filing_type='10-Q', 
-                   name=cls._name_template.format('quarterly'))
 
-    @classmethod
-    def annual(cls):
-        return cls(filing_type='10-k',
-                   name=cls._name_template.format('annual'))
 
 class EPS(AccountingMetric):
     _name_template = '{}_eps'

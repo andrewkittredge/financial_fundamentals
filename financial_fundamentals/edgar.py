@@ -13,23 +13,7 @@ import time
 from requests.exceptions import ConnectionError
 from financial_fundamentals.sec_filing import Filing
 import re
-from financial_fundamentals.exceptions import NoDataForStockOnDate,\
-    NoDataForStock
 
-
-
-SEARCH_URL = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100'        
-class FilingNotAvailableForDate(NoDataForStockOnDate):
-    '''XBRL not available for requested date.
-    
-    ''' 
-    def __init__(self, message, start=None, end=None):
-        super(FilingNotAvailableForDate, self).__init__(message)
-        self.start = start
-        self.end = end
-        
-class NoFilingsNotAvailable(NoDataForStock):
-    '''No filings on edgar for company.'''
 
 def get_filings(symbol, filing_type):
     '''Get the last xbrl filed before date.
@@ -51,6 +35,8 @@ def get_filings(symbol, filing_type):
         filings[i].next_filing = filings[i + 1]
     return filings
 
+SEARCH_URL = ('http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&'
+              'CIK={symbol}&type={filing_type}&dateb=&owner=exclude&count=100')
 def _get_document_page_urls(symbol, filing_type):
     '''Get the edgar filing document pages for the CIK.
     
@@ -116,8 +102,3 @@ def get(url):
             wait += 1
     else:
         raise
-
-if __name__ == '__main__':
-    print HTMLEdgarDriver.get_filing(ticker='GOOG', 
-                                     filing_type='10-Q', 
-                                     date_after=datetime.date(1960, 9, 29)).xbrl_url

@@ -5,16 +5,16 @@ Created on Oct 8, 2013
 '''
 import unittest
 import xmltodict
-import os
-from tests.infrastructure import TEST_DOCS_DIR, turn_on_request_caching
+import tests
 from financial_fundamentals.xbrl import XBRLDocument, InstantContext,\
     DurationContext, XBRLMetricParams
 import datetime
 
+tests.turn_on_request_caching()
 
 class Test(unittest.TestCase):
     def setUp(self):
-        test_filing_path = os.path.join(TEST_DOCS_DIR, 'aapl-20121229.xml')
+        test_filing_path = tests.asset_file_path('aapl-20121229.xml')
         self.xbrl_doc = XBRLDocument.gets_XBRL_locally(file_path=test_filing_path)
 
     def test_duration_context(self):
@@ -29,9 +29,8 @@ class Test(unittest.TestCase):
         self.assertEqual(context.instant, datetime.date(2012, 9, 29))
 
     def test_document_downloading(self):
-        turn_on_request_caching()
         url = 'http://www.sec.gov/Archives/edgar/data/320193/000119312513022339/aapl-20121229.xml'
-        test_filing_path = os.path.join(TEST_DOCS_DIR, 'aapl-20121229.xml')
+        test_filing_path = tests.asset_file_path('aapl-20121229.xml')
         with open(test_filing_path) as f:
             test_statement_xml_dict = xmltodict.parse(f.read())
             xbrl_dict = test_statement_xml_dict['xbrl']
@@ -44,7 +43,6 @@ class Test(unittest.TestCase):
         self.assertEqual(self.xbrl_doc.latest_metric_value(metric_params=metric_params),
                          13.81)
         
-
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
