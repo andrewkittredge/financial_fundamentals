@@ -47,6 +47,6 @@ setup(name='FinancialFundamentals',
 	],
       dependency_links=[
 	'git+https://github.com/andrewkittredge/vector_cache.git',
-      ]
+      ],
       url='https://github.com/andrewkittredge/financial_fundamentals',
 )
