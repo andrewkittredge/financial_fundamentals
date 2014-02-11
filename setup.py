@@ -40,11 +40,13 @@ setup(name='FinancialFundamentals',
 	'requests_cache',
 	'requests',
 	'BeautifulSoup',
-	'pymongo',
 	'mock',
 	'pandas',
-	'zipline',
 	'xmltodict',
+	'blist',
 	],
+      dependency_links=[
+	'git+https://github.com/andrewkittredge/vector_cache.git',
+      ]
       url='https://github.com/andrewkittredge/financial_fundamentals',
 )
