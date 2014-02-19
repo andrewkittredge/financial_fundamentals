@@ -44,10 +44,11 @@ setup(name='FinancialFundamentals',
 	'pandas',
 	'xmltodict',
 	'blist',
-	'dateutil==1.5',
+	'python-dateutil==1.5',
+	'vector_cache',
 	],
       dependency_links=[
-	'git+https://github.com/andrewkittredge/vector_cache.git',
+	'http://github.com/andrewkittredge/vector_cache/tarball/master#egg=vector_cache',
       ],
       url='https://github.com/andrewkittredge/financial_fundamentals',
 )
