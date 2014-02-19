@@ -4,7 +4,7 @@ Created on Oct 8, 2013
 @author: akittredge
 '''
 
-import dateutil
+import dateutil.parser
 import xmltodict
 from financial_fundamentals.exceptions import ValueNotInFilingDocument
 
