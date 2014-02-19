@@ -1,26 +1,16 @@
 financial_fundamentals
 ======================
 
-Cache prices from yahoo and accounting metrics from SEC filings.
+Find XBRL filings on the SEC's edgar and extract accounting metrics.
 See the blog @ [http://andrewonfinance.blogspot.com/](http://andrewonfinance.blogspot.com/).
+Caching is provided by my vector_cache package, https://github.com/andrewkittredge/vector_cache.
 
 
-	import pytz
-	import datetime
+	import pandas as pd
 	import financial_fundamentals as ff
-	from financial_fundamentals.accounting_metrics import EPS
-	from financial_fundamentals.indicies import DOW_TICKERS
 	
-	
-	start = datetime.datetime(2009, 1, 1, tzinfo=pytz.UTC)
-	end = datetime.datetime(2013, 11, 26, tzinfo=pytz.UTC)
-	eps_cache = ff.sqlite_fundamentals_cache(metric=EPS.quarterly())
-	price_cache = ff.sqlite_price_cache()
-	args = {'stocks' : ['GOOG', 'YHOO', 'MSFT', 'IBM'], 'start' : start, 'end' : end}
-	
-	# The first load_from_cache calls will take a long time as data is downloaded from
-	# yahoo and edgar.sec.gov, thereafter data will be loaded from cache.
-	earnings_per_share = eps_cache.load_from_cache(**args)
-	price = price_cache.load_from_cache(**args)
-	price_to_earnings = price / (earnings_per_share * 4)
-	price_to_earnings.plot()
+	date_range = pd.date_range('2012-1-1', '2013-12-31')
+	required_data = pd.DataFrame(columns=['MSFT', 'GOOG', 'YHOO', 'IBM'], index=date_range)
+
+	eps = ff.accounting_metrics.earnings_per_share(required_data)
+	print eps
