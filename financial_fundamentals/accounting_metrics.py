@@ -6,7 +6,7 @@ Created on Jan 26, 2013
 
 from financial_fundamentals.xbrl import XBRLMetricParams, DurationContext,\
     InstantContext
-from financial_fundamentals.exceptions import ValueNotInFilingDocument, NoDataForStockForRange
+from financial_fundamentals.exceptions import ValueNotInFilingDocument
 import numpy as np
 import vector_cache
                       
@@ -68,6 +68,7 @@ import financial_fundamentals.edgar as edgar
 def earnings_per_share(required_data):
     start, end = required_data.index[0], required_data.index[-1]
     for symbol, values in required_data.iteritems():
+        print 'getting symbol {}'.format(symbol)
         filings = edgar.get_filings(symbol=symbol, 
                                     filing_type='10-Q')
         filings = filings[filings.bisect(start) - 1:filings.bisect(end)]
@@ -76,13 +77,14 @@ def earnings_per_share(required_data):
             interval_start = filing.first_tradable_date
             interval_end = filing.next_filing and filing.next_filing.first_tradable_date
             values[interval_start:interval_end] = value
+            
     return required_data
-
 
 if __name__ == '__main__':
     import requests_cache
+    from financial_fundamentals.indicies import DOW_TICKERS
     requests_cache.install_cache(cache_name='edgar')
-    required_data = pd.DataFrame(columns=['GOOG', 'YHOO'], 
+    required_data = pd.DataFrame(columns=DOW_TICKERS, 
                                  index=pd.date_range('2012-1-1', '2012-12-31'))
     eps = earnings_per_share(required_data)
     print eps
