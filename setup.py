@@ -44,6 +44,7 @@ setup(name='FinancialFundamentals',
 	'pandas',
 	'xmltodict',
 	'blist',
+	'dateutil==1.5',
 	],
       dependency_links=[
 	'git+https://github.com/andrewkittredge/vector_cache.git',
