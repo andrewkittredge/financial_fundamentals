@@ -6,6 +6,7 @@ See the blog @ [http://andrewonfinance.blogspot.com/](http://andrewonfinance.blo
 Caching is provided by my vector_cache package, https://github.com/andrewkittredge/vector_cache.
 
 
+
 	import pandas as pd
 	import financial_fundamentals as ff
 	
@@ -14,3 +15,5 @@ Caching is provided by my vector_cache package, https://github.com/andrewkittred
 
 	eps = ff.accounting_metrics.earnings_per_share(required_data)
 	print eps
+	
+FWIW: I (Andrew) got a job doing XBRL professionally @ [calcbench.com](http://calcbench.com) so I will not be working on this project any more.
