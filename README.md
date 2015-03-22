@@ -16,4 +16,8 @@ Caching is provided by my vector_cache package, https://github.com/andrewkittred
 	eps = ff.accounting_metrics.earnings_per_share(required_data)
 	print eps
 	
-FWIW: I (Andrew) got a job doing XBRL professionally @ [calcbench.com](http://calcbench.com) so I will not be working on this project any more.
+Follow up:
+
+I (Andrew) am working for [Calcbench](http://calcbench.com) the leading commercial XBRL shop.  I have written an API client for Calcbench that achieves the goals of financial_fundamentals, check it out at https://github.com/calcbench/python_api_client.  
+
+The SEC's XBRL database is a wonderful, huge, source of fundamentals data; but making sense of it and correcting the errors is a massive project.  Calcbench is further towards XBRL mastery than anybody else, if you have legitimate need for the data in XBRL I would encourage you to consider Calcbench before embarking on a parsing adventure of your own.
